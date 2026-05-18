@@ -1,8 +1,13 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
-fi
+# Prepare all configured databases (primary, queue, cache, cable) whenever we
+# boot the Rails server. db:prepare is idempotent — creates DBs if missing,
+# loads schema.rb on fresh installs, runs pending migrations on upgrades, and
+# is a no-op when the schema is already current.
+case "${*}" in
+  *"rails server"*|*"rails s"*|*"thrust"*)
+    ./bin/rails db:prepare
+    ;;
+esac
 
 exec "${@}"
