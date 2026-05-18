@@ -1,12 +1,15 @@
 #!/bin/bash -e
 
-# Prepare all configured databases (primary, queue, cache, cable) whenever we
-# boot the Rails server. db:prepare is idempotent — creates DBs if missing,
-# loads schema.rb on fresh installs, runs pending migrations on upgrades, and
-# is a no-op when the schema is already current.
+# On every Rails server boot:
+#   1. db:prepare  — create each DB if missing (primary/queue/cache/cable),
+#                    load schema.rb on first run, run pending migrations on
+#                    upgrades. No-op when the schema is already current.
+#   2. db:seed     — run db/seeds.rb. Seeds MUST be idempotent
+#                    (use find_or_create_by! / upsert! patterns).
 case "${*}" in
   *"rails server"*|*"rails s"*|*"thrust"*)
     ./bin/rails db:prepare
+    ./bin/rails db:seed
     ;;
 esac
 
