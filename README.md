@@ -1,8 +1,8 @@
-# Apocalymaps
+# Dawarich Atlas
 
-A local-first, self-hostable alternative to Google Maps. Built on open data and FOSS components, designed to survive without external dependencies.
+A local-first, self-hostable maps stack. Built on OpenStreetMap data and FOSS components, designed to run on hardware you control with zero outbound API calls at runtime.
 
-The name implies: even after the apocalypse, you should still be able to find your way home.
+Atlas is the maps engine that powers Dawarich, packaged so it stands on its own — install it on your own box, plug your own clients into the API.
 
 ## Design principles
 
@@ -798,7 +798,7 @@ docker compose --profile all up -d
 
 Open the panel via the cog icon → toggle services and pick regions from the dropdown → click Save → confirm. Live progress streams through Turbo Streams over Action Cable.
 
-A Go sidecar (`apo-control`) owns docker socket access; Rails talks to it over HTTP. Both ship as separate images: `ghcr.io/dawarich-app/atlas/app:latest` (Rails) and `ghcr.io/dawarich-app/atlas/apo-control:latest` (sidecar). The sidecar source lives at `apo-control/`.
+A Go sidecar (`atlas-control`) owns docker socket access; Rails talks to it over HTTP. Both ship as separate images: `ghcr.io/dawarich-app/atlas/app:latest` (Rails) and `ghcr.io/dawarich-app/atlas/atlas-control:latest` (sidecar). The sidecar source lives at `atlas-control/`.
 
 OpenAPI for the admin endpoints: `http://localhost:8484/api-docs/admin/swagger.yaml`.
 
@@ -994,14 +994,14 @@ CI runs on GitHub Actions (config under `.github/workflows/`, TBD) and publishes
 | Job | Trigger | Output |
 |-----|---------|--------|
 | `app-image` | push to `main` touching `app/**` | `ghcr.io/dawarich-app/atlas/app:latest` + `:@commit_hash@` (multi-arch: amd64 + arm64) |
-| `control-plane-image` | push to `main` touching `apo-control/**` | `ghcr.io/dawarich-app/atlas/apo-control:latest` + `:@commit_hash@` (multi-arch) |
+| `control-plane-image` | push to `main` touching `atlas-control/**` | `ghcr.io/dawarich-app/atlas/atlas-control:latest` + `:@commit_hash@` (multi-arch) |
 | `test-rails` | push / PR touching `app/**` | RSpec suite |
-| `test-sidecar` | push / PR touching `apo-control/**` | `go test ./...` |
+| `test-sidecar` | push / PR touching `atlas-control/**` | `go test ./...` |
 
 Compose defaults consume those tags:
 
 - `APP_IMAGE` defaults to `ghcr.io/dawarich-app/atlas/app:latest`
-- `APO_CONTROL_IMAGE` defaults to `ghcr.io/dawarich-app/atlas/apo-control:latest`
+- `ATLAS_CONTROL_IMAGE` defaults to `ghcr.io/dawarich-app/atlas/atlas-control:latest`
 
 Override either with `APP_IMAGE=<local>:dev APP_PULL_POLICY=never docker compose up -d` when iterating locally before pushing.
 

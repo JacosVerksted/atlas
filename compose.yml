@@ -1,7 +1,7 @@
 services:
   caddy:
     image: caddy:2.11.3-alpine
-    container_name: apo-caddy
+    container_name: atlas-caddy
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./data/tiles:/srv/tiles:ro
@@ -15,7 +15,7 @@ services:
   app:
     image: ${APP_IMAGE:-ghcr.io/dawarich-app/atlas/app:latest}
     pull_policy: ${APP_PULL_POLICY:-always}
-    container_name: apo-app
+    container_name: atlas-app
     environment:
       RAILS_ENV: production
       DATABASE_URL: ${DATABASE_URL:-sqlite3:/data/app.sqlite3}
@@ -34,7 +34,7 @@ services:
       DEFAULT_LAT: ${DEFAULT_LAT:-51.1657}
       DEFAULT_LON: ${DEFAULT_LON:-10.4515}
       DEFAULT_ZOOM: ${DEFAULT_ZOOM:-2}
-      CONTROL_PLANE_URL: http://apo-control:8090
+      CONTROL_PLANE_URL: http://atlas-control:8090
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
@@ -42,10 +42,10 @@ services:
       - ./regions:/rails/regions:ro
     restart: unless-stopped
 
-  apo-control:
-    image: ${APO_CONTROL_IMAGE:-ghcr.io/dawarich-app/atlas/apo-control:latest}
-    pull_policy: ${APO_CONTROL_PULL_POLICY:-always}
-    container_name: apo-control
+  atlas-control:
+    image: ${ATLAS_CONTROL_IMAGE:-ghcr.io/dawarich-app/atlas/atlas-control:latest}
+    pull_policy: ${ATLAS_CONTROL_PULL_POLICY:-always}
+    container_name: atlas-control
     environment:
       COMPOSE_PROJECT_NAME: atlas
       COMPOSE_FILE:         /work/compose.yml

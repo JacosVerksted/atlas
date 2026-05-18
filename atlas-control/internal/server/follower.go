@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dawarich-app/atlas/apo-control/internal/dockerexec"
-	"github.com/dawarich-app/atlas/apo-control/internal/parsers"
-	"github.com/dawarich-app/atlas/apo-control/internal/state"
+	"github.com/dawarich-app/atlas/atlas-control/internal/dockerexec"
+	"github.com/dawarich-app/atlas/atlas-control/internal/parsers"
+	"github.com/dawarich-app/atlas/atlas-control/internal/state"
 )
 
 const diskRefreshInterval = 30 * time.Second

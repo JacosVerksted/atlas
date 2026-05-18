@@ -85,6 +85,6 @@ func main() {
 		w.WriteHeader(http.StatusAccepted)
 	})
 
-	log.Printf("apo-control --mock listening on %s", *addr)
+	log.Printf("atlas-control --mock listening on %s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, mux))
 }

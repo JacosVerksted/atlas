@@ -10,8 +10,8 @@ module SidecarHelper
   end
 
   def boot_mock_sidecar(scenario)
-    binary = ENV.fetch("APO_CONTROL_MOCK_BIN", File.expand_path("../../../apo-control/mock", __dir__))
-    scenario_path = File.expand_path("../../../apo-control/testdata/scenarios/#{scenario}.yml", __dir__)
+    binary = ENV.fetch("ATLAS_CONTROL_MOCK_BIN", File.expand_path("../../../atlas-control/mock", __dir__))
+    scenario_path = File.expand_path("../../../atlas-control/testdata/scenarios/#{scenario}.yml", __dir__)
     port = (Random.rand(20_000..50_000)).to_s
     pid = Process.spawn(binary, "--scenario", scenario_path, "--addr", ":#{port}", out: "/dev/null", err: "/dev/null")
     at_exit { Process.kill("TERM", pid) rescue nil }

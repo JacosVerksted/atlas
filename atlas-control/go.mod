@@ -1,4 +1,4 @@
-module github.com/dawarich-app/atlas/apo-control
+module github.com/dawarich-app/atlas/atlas-control
 
 go 1.22
 

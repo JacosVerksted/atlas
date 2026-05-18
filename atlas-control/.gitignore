@@ -1,0 +1,8 @@
+# Local Go build artifacts
+/apo-control
+/cmd/mock/mock
+/dist/
+
+# Test coverage
+*.out
+coverage.*

@@ -1,4 +1,4 @@
-# apo-control
+# atlas-control
 
 Small Go sidecar that owns `docker compose` + `osmium` exec for the Apocalymaps admin panel.
 
@@ -16,7 +16,7 @@ Small Go sidecar that owns `docker compose` + `osmium` exec for the Apocalymaps 
 ## Local development
 
 ```bash
-cd apo-control
+cd atlas-control
 go test ./...
 go run . --addr :8090
 

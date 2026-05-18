@@ -65,7 +65,7 @@ class ControlPlaneClient
   end
 
   def self.build_default_connection
-    base = ENV.fetch("CONTROL_PLANE_URL", "http://apo-control:8090")
+    base = ENV.fetch("CONTROL_PLANE_URL", "http://atlas-control:8090")
     Faraday.new(url: base) do |b|
       b.request :json
       b.response :json, content_type: /\bjson$/

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dawarich-app/atlas/apo-control/internal/state"
+	"github.com/dawarich-app/atlas/atlas-control/internal/state"
 )
 
 func TestRefreshDiskSumsFiles(t *testing.T) {

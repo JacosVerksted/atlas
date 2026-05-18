@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dawarich-app/atlas/apo-control/internal/dockerexec"
-	"github.com/dawarich-app/atlas/apo-control/internal/osmium"
-	"github.com/dawarich-app/atlas/apo-control/internal/regions"
-	"github.com/dawarich-app/atlas/apo-control/internal/state"
+	"github.com/dawarich-app/atlas/atlas-control/internal/dockerexec"
+	"github.com/dawarich-app/atlas/atlas-control/internal/osmium"
+	"github.com/dawarich-app/atlas/atlas-control/internal/regions"
+	"github.com/dawarich-app/atlas/atlas-control/internal/state"
 	"github.com/go-chi/chi/v5"
 )
 

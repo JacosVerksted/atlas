@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/dawarich-app/atlas/apo-control/internal/server"
+	"github.com/dawarich-app/atlas/atlas-control/internal/server"
 )
 
 func main() {
@@ -14,19 +14,19 @@ func main() {
 		ComposeFile:    envOr("COMPOSE_FILE", "/work/compose.yml"),
 		HostProjectDir: os.Getenv("HOST_PROJECT_DIR"),
 		EnvFile:        envOr("ENV_FILE", "/work/.env"),
-		StateDir:       envOr("STATE_DIR", "/var/lib/apo-control"),
+		StateDir:       envOr("STATE_DIR", "/var/lib/atlas-control"),
 		DataDir:        envOr("DATA_DIR", "/work/data"),
 		RegionsDir:     envOr("REGIONS_DIR", "/work/regions"),
-		ListenAddr:     envOr("LISTEN_ADDR", envOr("APO_CONTROL_ADDR", ":8090")),
+		ListenAddr:     envOr("LISTEN_ADDR", envOr("ATLAS_CONTROL_ADDR", ":8090")),
 	}
 
 	addr := cfg.ListenAddr
 
 	handler := server.New(cfg)
 
-	log.Printf("apo-control listening on %s", addr)
+	log.Printf("atlas-control listening on %s", addr)
 	if err := http.ListenAndServe(addr, handler); err != nil {
-		log.Fatalf("apo-control server exited: %v", err)
+		log.Fatalf("atlas-control server exited: %v", err)
 	}
 }
 

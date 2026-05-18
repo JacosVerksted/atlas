@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dawarich-app/atlas/apo-control/internal/dockerexec"
+	"github.com/dawarich-app/atlas/atlas-control/internal/dockerexec"
 )
 
 type mockRunner struct{ lastArgs []string }

@@ -3,7 +3,7 @@ package osmium
 import (
 	"context"
 
-	"github.com/dawarich-app/atlas/apo-control/internal/dockerexec"
+	"github.com/dawarich-app/atlas/atlas-control/internal/dockerexec"
 )
 
 type Osmium struct{ Runner dockerexec.Runner }
