@@ -3,7 +3,7 @@ class HomeController < ApplicationController
 
   def index
     @tiles_url    = Setting.get("tiles_url").presence || ENV["TILES_URL"].presence
-    @theme        = ENV.fetch("TILES_THEME", "light")
+    @theme        = Setting.get("tiles_theme").presence || ENV.fetch("TILES_THEME", "light")
     @regions_dir  = ENV.fetch("REGIONS_DIR") do
       candidates = [Rails.root.join("regions"), Rails.root.join("..", "regions")]
       candidates.find { |p| File.directory?(p) } || candidates.first

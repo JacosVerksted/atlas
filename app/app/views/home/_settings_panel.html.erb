@@ -91,6 +91,17 @@
         <button type="button" class="btn btn-xs btn-ghost flex-1" data-action="basemap#useEnv">Use .env default</button>
       </div>
 
+      <div class="flex items-center gap-2 mt-2">
+        <label class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55 flex-shrink-0">Theme</label>
+        <select class="select select-bordered select-xs flex-1"
+                data-basemap-target="theme"
+                data-action="change->basemap#updateTheme">
+          <% %w[light dark grayscale white black].each do |t| %>
+            <option value="<%= t %>" <%= 'selected' if @theme == t %>><%= t.titleize %></option>
+          <% end %>
+        </select>
+      </div>
+
       <div class="text-[10px] text-base-content/70 hidden mt-1" data-basemap-target="status"></div>
     </section>
 

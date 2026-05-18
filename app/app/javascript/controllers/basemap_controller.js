@@ -29,11 +29,12 @@ const PRESETS = [
 export default class extends Controller {
   static targets = ["effective", "envSource", "localStatus", "downloadBlock",
                     "downloadLabel", "downloadBar", "downloadPercent",
-                    "presetGrid", "customUrl", "status"]
+                    "presetGrid", "customUrl", "status", "theme"]
   static values = {
     showUrl:     { type: String, default: "/admin/tiles" },
     updateUrl:   { type: String, default: "/admin/tiles" },
-    downloadUrl: { type: String, default: "/admin/tiles/download" }
+    downloadUrl: { type: String, default: "/admin/tiles/download" },
+    themeUrl:    { type: String, default: "/admin/tiles/theme" }
   }
 
   async connect() {
@@ -157,6 +158,23 @@ export default class extends Controller {
     await this.postUpdate({ source: "env" })
     this.notifyMap()
     this.showStatus("Reverted to .env default")
+  }
+
+  async updateTheme(event) {
+    const theme = event.target.value
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content
+    const headers = { "Content-Type": "application/json", "Accept": "application/json" }
+    if (csrf) headers["X-CSRF-Token"] = csrf
+    const res = await fetch(this.themeUrlValue, {
+      method: "PATCH", headers, body: JSON.stringify({ theme })
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      this.showStatus(body?.error?.message || `Theme switch failed (${res.status})`)
+      return
+    }
+    this.notifyMap()
+    this.showStatus(`Theme: ${theme}`)
   }
 
   async useUrl(url) {

@@ -32,6 +32,7 @@ Rails.application.routes.draw do
     get  :tiles,                 to: "tiles#show"
     post "tiles/download",       to: "tiles#download",  as: :tiles_download
     patch :tiles,                to: "tiles#update"
+    patch "tiles/theme",         to: "tiles#update_theme", as: :tiles_theme
   end
 
   root "home#index"
