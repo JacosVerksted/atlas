@@ -1,0 +1,126 @@
+<div
+  data-controller="routing"
+  data-routing-search-endpoint-value="/api/v1/search"
+  data-routing-route-endpoint-value="/api/v1/route"
+  class="flex flex-col h-full"
+>
+  <header class="px-4 pt-4 pb-3 border-b border-base-200 flex items-end justify-between gap-3">
+    <div>
+      <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-primary/80">Routing</div>
+      <h2 class="text-base font-semibold leading-tight mt-0.5">Directions</h2>
+    </div>
+    <div class="join">
+      <button type="button" class="btn btn-sm btn-primary join-item" data-mode="auto"       data-action="routing#selectMode" aria-label="Drive" title="Drive">
+        <%= icon "car", class: "w-4 h-4" %>
+      </button>
+      <button type="button" class="btn btn-sm btn-ghost   join-item" data-mode="bicycle"    data-action="routing#selectMode" aria-label="Bike"  title="Bike">
+        <%= icon "bike", class: "w-4 h-4" %>
+      </button>
+      <button type="button" class="btn btn-sm btn-ghost   join-item" data-mode="pedestrian" data-action="routing#selectMode" aria-label="Walk"  title="Walk">
+        <%= icon "footprints", class: "w-4 h-4" %>
+      </button>
+      <button type="button" class="btn btn-sm btn-ghost   join-item" data-mode="transit"    data-action="routing#selectMode" aria-label="Transit" title="Transit">
+        <%= icon "train-front", class: "w-4 h-4" %>
+      </button>
+    </div>
+  </header>
+
+  <div class="flex flex-col gap-3 p-4 overflow-y-auto flex-1 min-h-0">
+  <div class="grid grid-cols-[1fr_auto] gap-2 items-stretch">
+    <div class="flex flex-col gap-2">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-info ring-2 ring-base-100"></span>
+        <input
+          type="search"
+          placeholder="From"
+          autocomplete="off"
+          spellcheck="false"
+          class="input input-bordered input-sm w-full pl-8 pr-9"
+          data-routing-target="fromInput"
+          data-action="input->routing#queryFrom keydown->routing#keyFrom"
+        />
+        <button type="button"
+                class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-square btn-ghost btn-xs"
+                title="Pick from on map"
+                aria-label="Pick from on map"
+                data-pick-on-map
+                data-action="routing#pickFrom">
+          <%= icon "map-pin", class: "w-3.5 h-3.5" %>
+        </button>
+        <ul class="menu menu-sm bg-base-100 rounded-box w-full max-h-[40vh] overflow-y-auto hidden absolute left-0 right-0 top-full z-10 shadow-lg mt-1"
+            data-routing-target="fromResults"></ul>
+      </div>
+
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-sm bg-primary ring-2 ring-base-100"></span>
+        <input
+          type="search"
+          placeholder="To"
+          autocomplete="off"
+          spellcheck="false"
+          class="input input-bordered input-sm w-full pl-8 pr-9"
+          data-routing-target="toInput"
+          data-action="input->routing#queryTo keydown->routing#keyTo"
+        />
+        <button type="button"
+                class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-square btn-ghost btn-xs"
+                title="Pick to on map"
+                aria-label="Pick to on map"
+                data-pick-on-map
+                data-action="routing#pickTo">
+          <%= icon "map-pin", class: "w-3.5 h-3.5" %>
+        </button>
+        <ul class="menu menu-sm bg-base-100 rounded-box w-full max-h-[40vh] overflow-y-auto hidden absolute left-0 right-0 top-full z-10 shadow-lg mt-1"
+            data-routing-target="toResults"></ul>
+      </div>
+    </div>
+
+    <button type="button"
+            class="btn btn-square btn-sm btn-ghost self-center"
+            aria-label="Swap origin and destination"
+            title="Swap"
+            data-action="routing#swap">
+      <%= icon "arrow-up-down", class: "w-4 h-4" %>
+    </button>
+  </div>
+
+  <%# Options (Drive only). Collapses by default. %>
+  <details class="text-xs text-base-content/70" data-routing-target="optionsBlock">
+    <summary class="cursor-pointer select-none flex items-center gap-1 pt-1">
+      <%= icon "sliders-horizontal", class: "w-3.5 h-3.5" %>
+      <span>Options</span>
+    </summary>
+    <div class="flex flex-col gap-1 pl-5 mt-1">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" class="checkbox checkbox-xs" data-routing-target="avoidTolls"    data-action="change->routing#optionsChanged">
+        <span>Avoid tolls</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" class="checkbox checkbox-xs" data-routing-target="avoidHighways" data-action="change->routing#optionsChanged">
+        <span>Avoid highways</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" class="checkbox checkbox-xs" data-routing-target="avoidFerries"  data-action="change->routing#optionsChanged">
+        <span>Avoid ferries</span>
+      </label>
+    </div>
+  </details>
+
+  <button type="button" class="hidden" data-routing-target="submit" data-action="routing#submit"></button>
+  <div class="text-xs text-base-content/70 hidden" data-routing-target="status"></div>
+
+  <div class="hidden border-t pt-3" data-routing-target="summary">
+    <div class="flex items-baseline justify-between">
+      <div class="flex items-baseline gap-2">
+        <span class="text-base font-semibold" data-routing-target="summaryDuration">—</span>
+        <span class="text-sm text-base-content/70" data-routing-target="summaryDistance"></span>
+      </div>
+      <button type="button" class="btn btn-xs btn-ghost" data-action="routing#toggleDetails">Steps</button>
+    </div>
+    <ul class="hidden mt-2 max-h-[40vh] overflow-y-auto space-y-2 pr-1" data-routing-target="details"></ul>
+  </div>
+
+  <ul class="hidden border-t pt-3 mt-1 max-h-[50vh] overflow-y-auto space-y-2"
+      data-routing-target="itineraries"></ul>
+  </div>
+</div>

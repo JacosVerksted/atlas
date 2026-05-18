@@ -1,0 +1,40 @@
+<div
+  data-controller="search"
+  data-search-endpoint-value="/api/v1/search"
+  class="flex flex-col h-full"
+>
+  <header class="px-4 pt-4 pb-3 border-b border-base-200">
+    <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-primary/80">Geocoding</div>
+    <h2 class="text-base font-semibold leading-tight mt-0.5">Search</h2>
+  </header>
+
+  <div class="flex flex-col gap-2 p-4 overflow-y-auto flex-1 min-h-0">
+    <div class="relative">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none">
+        <%= icon "search", class: "w-4 h-4" %>
+      </span>
+      <input
+        type="search"
+        placeholder="Places, addresses…"
+        autocomplete="off"
+        spellcheck="false"
+        class="input input-bordered w-full pl-9 pr-10"
+        data-search-target="input"
+        data-action="input->search#query keydown->search#keydown"
+      />
+      <button
+        type="button"
+        class="absolute right-2 top-1/2 -translate-y-1/2 btn btn-square btn-ghost btn-xs"
+        aria-label="Clear search"
+        data-action="search#clear"
+      ><%= icon "x", class: "w-4 h-4" %></button>
+    </div>
+
+    <ul
+      class="bg-base-100 rounded-box w-full max-h-[60vh] overflow-y-auto overflow-x-hidden hidden flex flex-col gap-0.5 list-none p-1 m-0 border border-base-200"
+      data-search-target="results"
+    ></ul>
+
+    <div class="text-xs text-base-content/70 hidden" data-search-target="status"></div>
+  </div>
+</div>

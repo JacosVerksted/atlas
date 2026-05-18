@@ -1,0 +1,91 @@
+# Per-service dataset update metadata.
+#
+# update_kind:
+#   - incremental    — service streams diffs internally (Overpass, Valhalla, OTP)
+#   - full_refresh   — refresh re-downloads/rebuilds large dataset (Photon, Placeholder, PMTiles)
+#   - image_only     — service has no external dataset; pulling image is the update (Caddy, libpostal)
+#   - manual_only    — admin must trigger by hand; no automation safe to apply
+#
+# disk_impact units are bytes after Rails-side parsing; values here can use
+#   *_gb or *_mb suffixes for readability.
+#
+# default_schedule is a standard cron expression (`* * * * *`) OR the special
+#   sentinel `@continuous` for services that update themselves via diff stream
+#   (auto-update toggle is informational only for those).
+#
+# Service names match the `name` column of the `services` table and the
+#   compose.yml service keys.
+
+caddy:
+  update_kind: image_only
+  disk_impact:
+    transient_mb: 50
+    persistent_mb: 50
+    notes: "Image pull only; no dataset."
+  default_schedule: "0 5 * * 0"
+  notes: "Edge proxy. Updates only when image changes."
+
+photon:
+  update_kind: full_refresh
+  disk_impact:
+    transient_gb: 56
+    persistent_gb: 110
+    notes: "Komoot CDN bundle (~56 GB tar.bz2) extracted to ~110 GB Lucene index. Full re-download — no diffs."
+  default_schedule: "0 3 * * 0"
+  notes: "Weekly full refresh from Komoot CDN. Schedule off-hours; bandwidth-heavy."
+
+whosonfirst:
+  update_kind: manual_only
+  disk_impact:
+    transient_gb: 68
+    persistent_gb: 0
+    notes: "Downloads ~68 GB of WOF SQLite (admin + postalcode). Transient — clean after placeholder build."
+  default_schedule: null
+  notes: "Run only when refreshing Placeholder. WOF is rarely updated upstream."
+
+placeholder:
+  update_kind: full_refresh
+  disk_impact:
+    transient_gb: 71
+    persistent_gb: 4
+    notes: "Triggers WOF redownload + extract + build. Final store.sqlite3 ~3–6 GB."
+  default_schedule: "0 4 1 */3 *"
+  notes: "Quarterly rebuild. Admin boundaries are slow-moving."
+
+libpostal:
+  update_kind: image_only
+  disk_impact:
+    transient_gb: 2
+    persistent_gb: 2
+    notes: "Model files baked into image (~1.8 GB). No dataset on disk."
+  default_schedule: "0 5 1 * *"
+  notes: "Image pull only; models change rarely (years)."
+
+valhalla:
+  update_kind: incremental
+  disk_impact:
+    transient_mb: 50
+    persistent_mb: 50
+    growth_mb_per_day: 30
+    notes: "Built-in replication from OSM diffs (KB/min). Full rebuild requires new PBF (~75 GB planet)."
+  default_schedule: "@continuous"
+  notes: "Self-updates from OSM minute diffs. Auto-update toggle controls full-PBF rebuilds only."
+
+overpass:
+  update_kind: incremental
+  disk_impact:
+    transient_mb: 10
+    persistent_mb: 0
+    growth_mb_per_day: 50
+    notes: "Minute diffs from OVERPASS_DIFF_URL. Index grows ~50 MB/day for Germany."
+  default_schedule: "@continuous"
+  notes: "Self-updates from Geofabrik/OSM diff stream. No scheduled run needed."
+
+otp:
+  update_kind: full_refresh
+  disk_impact:
+    transient_gb: 5
+    persistent_gb: 10
+    notes: "Re-downloads GTFS feeds + rebuilds graph in place. Graph is 3–10 GB depending on region."
+  default_schedule: "0 5 * * 1"
+  notes: "Rebuild when GTFS feed publisher refreshes (most agencies weekly–monthly)."

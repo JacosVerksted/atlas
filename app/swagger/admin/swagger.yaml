@@ -1,0 +1,123 @@
+---
+openapi: 3.0.3
+info:
+  title: Apocalymaps Admin API
+  version: admin
+  description: Admin panel endpoints (HTTP Basic auth via ADMIN_USERNAME / ADMIN_PASSWORD).
+servers:
+- url: "{scheme}://{host}"
+  variables:
+    scheme:
+      default: http
+      enum:
+      - http
+      - https
+    host:
+      default: localhost:8000
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  schemas:
+    ServiceSnapshot:
+      type: object
+      properties:
+        name:
+          type: string
+        enabled:
+          type: boolean
+        status:
+          type: string
+        phase:
+          type: string
+          nullable: true
+        progress:
+          type: number
+          nullable: true
+        disk_bytes:
+          type: integer
+    ApplyProjectionResponse:
+      type: object
+      properties:
+        projection:
+          type: object
+          properties:
+            total_disk_gb:
+              type: number
+            first_boot_hours:
+              type: number
+            lines:
+              type: array
+              items:
+                type: object
+security:
+- basicAuth: []
+paths:
+  "/admin/apply":
+    post:
+      summary: Apply current selection (two-phase)
+      tags:
+      - Admin
+      security:
+      - basicAuth: []
+      parameters:
+      - name: confirmed
+        in: query
+        required: false
+        example: 'true'
+        schema:
+          type: string
+      responses:
+        '409':
+          description: confirmation required
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApplyProjectionResponse"
+  "/admin/regions":
+    post:
+      summary: Replace region selection
+      tags:
+      - Admin
+      security:
+      - basicAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: selection replaced
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - regions
+              properties:
+                regions:
+                  type: array
+                  items:
+                    type: string
+  "/admin/services/{name}":
+    parameters:
+    - name: name
+      in: path
+      required: true
+      schema:
+        type: string
+    post:
+      summary: Enable or disable a service
+      tags:
+      - Admin
+      security:
+      - basicAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: service toggled
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: string
+        required: true

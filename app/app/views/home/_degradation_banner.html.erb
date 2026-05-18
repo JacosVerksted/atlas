@@ -1,0 +1,15 @@
+<%
+  capability_for = {
+    "photon" => "Search", "placeholder" => "Search",
+    "valhalla" => "Routing", "overpass" => "POIs", "otp" => "Transit"
+  }
+  degraded = local_assigns[:degraded] || (defined?(@degraded) ? @degraded : [])
+  caps = Array(degraded).filter_map { |n| capability_for[n] }.uniq
+%>
+<div id="degradation_banner"
+     class="<%= 'hidden' if caps.empty? %> fixed top-0 inset-x-0 z-30 bg-error text-error-content text-sm py-2 px-4 shadow-md flex items-center justify-center gap-3">
+  <% if caps.any? %>
+    <span><%= caps.join(" & ") %> unavailable</span>
+    <a href="/admin/services?open=true" class="link link-hover font-medium">open settings</a>
+  <% end %>
+</div>

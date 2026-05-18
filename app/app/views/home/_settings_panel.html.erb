@@ -1,0 +1,134 @@
+<%= turbo_stream_from "services_channel" %>
+
+<%
+  services       = @services || Service.order(:profile, :name)
+  active_regions = (defined?(@active_regions) && @active_regions) || RegionSelection.where(active: true).order(:position).pluck(:region_name)
+  stats          = SettingsDashboard.for(services: services, active_regions: active_regions)
+  active_region_label = active_regions.first&.titleize || "None"
+%>
+
+<div class="flex flex-col h-full">
+  <header class="px-4 pt-4 pb-3 border-b border-base-200">
+    <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-primary/80">Control plane</div>
+    <h2 class="text-base font-semibold leading-tight mt-0.5">Settings</h2>
+  </header>
+
+  <%# At-a-glance stats strip %>
+  <div class="px-4">
+    <div class="grid grid-cols-3 gap-2 rounded-md bg-base-200/40 p-2">
+      <div class="text-center">
+        <div class="text-lg font-semibold tabular-nums">
+          <%= stats.services_ready %><span class="text-base-content/40">/<%= stats.services_total %></span>
+        </div>
+        <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55">Ready</div>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-semibold tabular-nums"><%= stats.total_disk_human %></div>
+        <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55">Disk</div>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-semibold truncate"><%= active_region_label %></div>
+        <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55">
+          <%= stats.active_region_count > 1 ? "+#{stats.active_region_count - 1} more" : "Region" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-4">
+    <section data-controller="regions">
+      <h3 class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55 mb-2 flex items-center gap-2">
+        <%= icon "map-pin", class: "w-3 h-3" %> Region
+      </h3>
+      <div id="region_chips" class="grid grid-cols-2 gap-2">
+        <% @regions.each do |region| %>
+          <%= render "admin/regions/region_chip", region: region, selected: @region_selection.include?(region.name) %>
+        <% end %>
+      </div>
+    </section>
+
+    <section data-controller="basemap">
+      <h3 class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55 mb-2 flex items-center gap-2">
+        <%= icon "map", class: "w-3 h-3" %> Basemap
+      </h3>
+
+      <div class="bg-base-200/40 rounded-md p-2.5 text-xs flex flex-col gap-1.5">
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-base-content/60">In use</span>
+          <span class="font-mono text-[10px] truncate text-right" data-basemap-target="effective">—</span>
+        </div>
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-base-content/60">Local file</span>
+          <span class="text-[10px] tabular-nums text-right" data-basemap-target="localStatus">—</span>
+        </div>
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-base-content/60">.env default</span>
+          <span class="font-mono text-[10px] truncate text-right text-base-content/50" data-basemap-target="envSource">—</span>
+        </div>
+
+        <%# Download-in-flight block. Hidden when no download has run. %>
+        <div class="border-t border-base-300 pt-1.5 mt-1 flex flex-col gap-1" data-basemap-target="downloadBlock" hidden>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] text-base-content/60 truncate" data-basemap-target="downloadLabel">—</span>
+            <span class="text-[10px] tabular-nums" data-basemap-target="downloadPercent">—</span>
+          </div>
+          <progress class="progress progress-primary w-full h-1.5" data-basemap-target="downloadBar" max="100"></progress>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-2 mt-2" data-basemap-target="presetGrid"></div>
+
+      <form class="flex gap-1 mt-2" data-action="submit->basemap#useCustom">
+        <input type="url"
+               placeholder="Custom style or pmtiles URL…"
+               class="input input-bordered input-xs w-full"
+               data-basemap-target="customUrl" />
+        <button type="submit" class="btn btn-xs btn-primary">Use</button>
+      </form>
+
+      <div class="flex gap-1 mt-2">
+        <button type="button" class="btn btn-xs btn-ghost flex-1" data-action="basemap#useLocal">Use local file</button>
+        <button type="button" class="btn btn-xs btn-ghost flex-1" data-action="basemap#useEnv">Use .env default</button>
+      </div>
+
+      <div class="text-[10px] text-base-content/70 hidden mt-1" data-basemap-target="status"></div>
+    </section>
+
+    <section>
+      <h3 class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55 mb-2 flex items-center gap-2">
+        <%= icon "server", class: "w-3 h-3" %> Services
+      </h3>
+      <div id="service_cards" class="flex flex-col">
+        <%
+          profile_order = [
+            ["geocoding", "Geocoding"],
+            ["routing",   "Routing"],
+            ["pois",      "POIs"],
+            ["transit",   "Transit"]
+          ]
+          grouped = @services.group_by(&:profile)
+        %>
+        <% profile_order.each do |profile, label| %>
+          <% list = (grouped[profile] || []).sort_by(&:name) %>
+          <% next if list.empty? %>
+          <h4 class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/45 mt-3 first:mt-0 mb-1 pl-3"><%= label %></h4>
+          <% list.each do |service| %>
+            <%= render "admin/services/service_card", service: service %>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <footer class="border-t border-base-300 p-4">
+    <div data-controller="confirm"
+         data-confirm-url-value="<%= admin_apply_path(format: :turbo_stream) %>">
+      <button type="button"
+              class="btn btn-primary btn-block btn-sm"
+              data-action="confirm#open">
+        Save & apply selection
+      </button>
+      <div id="apply_confirmation"></div>
+    </div>
+  </footer>
+</div>

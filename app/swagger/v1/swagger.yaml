@@ -1,0 +1,548 @@
+---
+openapi: 3.0.3
+info:
+  title: Apocalymaps API
+  version: v1
+  description: Local-first geocoding, routing, and POI lookup. All endpoints aggregate
+    one or more upstream OSM-derived services (Photon, Placeholder, libpostal, Valhalla,
+    Overpass).
+servers:
+- url: "{scheme}://{host}"
+  variables:
+    scheme:
+      default: http
+      enum:
+      - http
+      - https
+    host:
+      default: localhost:8000
+paths:
+  "/api/v1/geocode":
+    get:
+      summary: Combined forward + reverse geocoding
+      tags:
+      - Geocoding
+      description: |
+        Unified entrypoint that auto-routes to forward or reverse:
+
+        * `?q=…` (with optional `lat,lon` for proximity bias) → forward search.
+        * `?lat=&lon=` only → reverse geocode.
+
+        Internally calls the same orchestrators as `/api/v1/search` and `/api/v1/reverse`.
+      parameters:
+      - name: q
+        in: query
+        schema:
+          type: string
+        required: false
+        example: Marienplatz
+      - name: lat
+        in: query
+        schema:
+          type: number
+          format: double
+        required: false
+        example: 48.1374
+      - name: lon
+        in: query
+        schema:
+          type: number
+          format: double
+        required: false
+        example: 11.5755
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 25
+          default: 8
+        required: false
+      - name: lang
+        in: query
+        schema:
+          type: string
+        required: false
+      responses:
+        '200':
+          description: reverse result
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GeocodeResponse"
+        '400':
+          description: neither q nor lat/lon supplied
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/reverse/batch":
+    post:
+      summary: Batch reverse geocoding (cached, grid-snapped)
+      tags:
+      - Geocoding
+      description: |
+        Reverse-geocode many coordinates in one round trip.
+
+        * **Coords are snapped to a ~11 m grid** (4 decimal places) when computing the cache key,
+          so repeated lookups of points within ~11 m of each other share a result.
+        * **Solid Cache** (Rails 8 default) memoizes results for 30 days — dawarich-style trip
+          replays after the first run hit cache nearly 100%.
+        * Hard cap: 500 coords per request. For larger inputs, page client-side.
+        * Each result preserves the caller's optional `id` so clients can correlate.
+      parameters: []
+      responses:
+        '200':
+          description: batch results
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/BatchReverseResponse"
+        '400':
+          description: missing or invalid coords array
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '422':
+          description: non-numeric coordinate inside payload
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/BatchReverseRequest"
+  "/api/v1/reverse":
+    get:
+      summary: Reverse geocoding (point → labeled feature + admin chain)
+      tags:
+      - Geocoding
+      description: |
+        Sequential pipeline:
+        1. **Photon** reverse → nearest labeled feature + its own admin tags.
+        2. **Placeholder** fills in missing admin chain when Photon's tags are thin.
+      parameters:
+      - name: lat
+        in: query
+        schema:
+          type: number
+          format: double
+        required: true
+        example: 52.5163
+      - name: lon
+        in: query
+        schema:
+          type: number
+          format: double
+        required: true
+        example: 13.3777
+      - name: lang
+        in: query
+        schema:
+          type: string
+        required: false
+        example: de
+      responses:
+        '200':
+          description: feature returned (may be null if no nearby OSM feature)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ReverseResponse"
+        '400':
+          description: missing coordinates
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/route":
+    get:
+      summary: Routing via Valhalla (multimodal)
+      tags:
+      - Routing
+      description: Single-source endpoint — Valhalla returns a turn-by-turn route,
+        summary, and (optional) elevation profile.
+      parameters:
+      - name: from
+        in: query
+        schema:
+          type: string
+          pattern: "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
+        required: true
+        example: 52.5163,13.3777
+        description: lat,lon
+      - name: to
+        in: query
+        schema:
+          type: string
+          pattern: "^-?\\d+(\\.\\d+)?,-?\\d+(\\.\\d+)?$"
+        required: true
+        example: 48.1374,11.5755
+        description: lat,lon
+      - name: mode
+        in: query
+        schema:
+          type: string
+          enum:
+          - auto
+          - bicycle
+          - pedestrian
+          default: auto
+        required: false
+      responses:
+        '200':
+          description: route returned
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/RouteResponse"
+        '503':
+          description: Valhalla unreachable
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/search":
+    get:
+      summary: Forward geocoding (autocomplete + admin enrichment)
+      tags:
+      - Geocoding
+      description: |
+        Sequential pipeline:
+        1. **libpostal** normalizes the query.
+        2. **Photon** returns ranked candidates.
+        3. **Placeholder** fills in missing admin chain (country / state / city) per candidate.
+
+        Returns gracefully when Photon is down: `data: []`, `meta.upstream: "unavailable"`.
+      parameters:
+      - name: q
+        in: query
+        schema:
+          type: string
+        required: true
+        example: Marienplatz
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 25
+          default: 8
+        required: false
+      - name: lang
+        in: query
+        schema:
+          type: string
+        required: false
+        example: de
+      - name: lat
+        in: query
+        schema:
+          type: number
+          format: double
+        required: false
+        description: Optional proximity bias
+      - name: lon
+        in: query
+        schema:
+          type: number
+          format: double
+        required: false
+      responses:
+        '200':
+          description: results returned (possibly empty)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SearchResponse"
+        '400':
+          description: missing q parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/whats-here":
+    get:
+      summary: Reverse + nearby POIs in a radius
+      tags:
+      - POIs
+      description: |
+        Combines `ReverseOrchestrator` (Photon reverse + Placeholder admin enrichment) with an
+        Overpass radius query so a single call answers “what is at and around this point”.
+      parameters:
+      - name: lat
+        in: query
+        schema:
+          type: number
+          format: double
+        required: true
+        example: 52.5163
+      - name: lon
+        in: query
+        schema:
+          type: number
+          format: double
+        required: true
+        example: 13.3777
+      - name: radius
+        in: query
+        schema:
+          type: integer
+          minimum: 10
+          maximum: 2000
+          default: 200
+        required: false
+      - name: lang
+        in: query
+        schema:
+          type: string
+        required: false
+      responses:
+        '200':
+          description: label + nearby POIs
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WhatsHereResponse"
+        '400':
+          description: missing coordinates
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+components:
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+    Coords:
+      type: object
+      required:
+      - lat
+      - lon
+      properties:
+        lat:
+          type: number
+          format: double
+          example: 52.52
+        lon:
+          type: number
+          format: double
+          example: 13.405
+    AdminHierarchy:
+      type: object
+      properties:
+        country:
+          type: string
+          nullable: true
+          example: Germany
+        state:
+          type: string
+          nullable: true
+          example: Berlin
+        county:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+          example: Berlin
+        postcode:
+          type: string
+          nullable: true
+    GeocodeFeature:
+      type: object
+      required:
+      - id
+      - label
+      - coords
+      properties:
+        id:
+          type: string
+          example: node:240109189
+        name:
+          type: string
+          nullable: true
+          example: Berlin
+        label:
+          type: string
+          example: Berlin, Germany
+        type:
+          type: string
+          nullable: true
+          example: city
+        coords:
+          "$ref": "#/components/schemas/Coords"
+        admin:
+          "$ref": "#/components/schemas/AdminHierarchy"
+    ResponseMeta:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        upstream:
+          type: string
+          example: ok
+        count:
+          type: integer
+          example: 5
+    SearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/GeocodeFeature"
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"
+    ReverseResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            here:
+              "$ref": "#/components/schemas/GeocodeFeature"
+              nullable: true
+            admin:
+              "$ref": "#/components/schemas/AdminHierarchy"
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"
+    BatchReverseRequest:
+      type: object
+      required:
+      - coords
+      properties:
+        coords:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            required:
+            - lat
+            - lon
+            properties:
+              id:
+                type: string
+                nullable: true
+                example: p_42
+              lat:
+                type: number
+                format: double
+                example: 52.5163
+              lon:
+                type: number
+                format: double
+                example: 13.3777
+        lang:
+          type: string
+          nullable: true
+          example: de
+    BatchReverseResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                nullable: true
+              coord:
+                "$ref": "#/components/schemas/Coords"
+              here:
+                "$ref": "#/components/schemas/GeocodeFeature"
+                nullable: true
+              admin:
+                "$ref": "#/components/schemas/AdminHierarchy"
+              error:
+                type: string
+                nullable: true
+        meta:
+          allOf:
+          - "$ref": "#/components/schemas/ResponseMeta"
+          - type: object
+            properties:
+              cache_hits:
+                type: integer
+                example: 184
+              cache_misses:
+                type: integer
+                example: 16
+              upstream_errors:
+                type: integer
+                example: 0
+              grid_precision:
+                type: integer
+                example: 4
+                description: Decimal places used for cache-key snapping (4 ≈ 11 m)
+              max_coords:
+                type: integer
+                example: 500
+    WhatsHereResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            here:
+              type: object
+              nullable: true
+            nearby:
+              type: array
+              items:
+                type: object
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"
+    RouteResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            summary:
+              type: object
+            legs:
+              type: array
+              items:
+                type: object
+            shape_format:
+              type: string
+              example: valhalla_encoded_polyline6
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"
+    GeocodeResponse:
+      type: object
+      description: Union of forward and reverse responses depending on which params
+        are supplied.
+      properties:
+        data:
+          oneOf:
+          - "$ref": "#/components/schemas/GeocodeFeature"
+          - type: array
+            items:
+              "$ref": "#/components/schemas/GeocodeFeature"
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"

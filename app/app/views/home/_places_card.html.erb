@@ -1,0 +1,78 @@
+<div data-controller="places"
+     data-places-endpoint-value="/api/v1/pois"
+     data-places-categories-endpoint-value="/api/v1/pois/categories"
+     class="flex flex-col h-full">
+  <header class="px-4 pt-4 pb-3 border-b border-base-200 flex items-end justify-between gap-3">
+    <div>
+      <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-primary/80">POIs &amp; categories</div>
+      <h2 class="text-base font-semibold leading-tight mt-0.5">Places</h2>
+    </div>
+    <button type="button" class="btn btn-xs btn-ghost" data-action="places#clear">Clear</button>
+  </header>
+
+  <%# Search across all categories %>
+  <div class="px-4 pb-2">
+    <div class="relative">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none">
+        <%= icon "search", class: "w-4 h-4" %>
+      </span>
+      <input type="search"
+             placeholder="Filter categories…"
+             autocomplete="off"
+             spellcheck="false"
+             data-places-target="search"
+             data-action="input->places#onSearch"
+             class="input input-bordered input-sm w-full pl-9 pr-9" />
+      <button type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 btn btn-square btn-ghost btn-xs"
+              aria-label="Clear filter"
+              data-action="places#clearSearch">
+        <%= icon "x", class: "w-3 h-3" %>
+      </button>
+    </div>
+  </div>
+
+  <%# Selected chips strip (hidden when empty) %>
+  <div class="px-4 pb-2 flex flex-wrap gap-1.5"
+       data-places-target="selected"
+       hidden></div>
+
+  <%# Name/address search within selected categories — hidden until a chip is active %>
+  <div class="px-4 pb-2"
+       data-places-target="nameSearchWrap"
+       hidden>
+    <div class="relative">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none">
+        <%= icon "search", class: "w-3.5 h-3.5" %>
+      </span>
+      <input type="search"
+             placeholder="Search by name or address…"
+             autocomplete="off"
+             spellcheck="false"
+             data-places-target="nameSearch"
+             data-action="input->places#onNameSearch keydown->places#onNameSearchKey"
+             class="input input-bordered input-sm w-full pl-8 pr-8" />
+      <button type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 btn btn-square btn-ghost btn-xs"
+              aria-label="Clear name search"
+              data-action="places#clearNameSearch">
+        <%= icon "x", class: "w-3 h-3" %>
+      </button>
+    </div>
+  </div>
+
+  <%# Quick picks — always visible pinned tier %>
+  <div class="px-4 pb-2">
+    <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55 mb-1.5">Quick picks</div>
+    <div class="grid grid-cols-2 gap-1" data-places-target="pinned"></div>
+  </div>
+
+  <%# Accordion sections / search results %>
+  <div class="px-2 border-t border-base-200 max-h-[40vh] overflow-y-auto" data-places-target="sections"></div>
+
+  <div class="text-xs text-base-content/70 hidden px-4 py-2 border-t border-base-200" data-places-target="status"></div>
+
+  <%# Results list %>
+  <ul class="flex-1 min-h-0 overflow-y-auto px-2 border-t border-base-200"
+      data-places-target="results"></ul>
+</div>

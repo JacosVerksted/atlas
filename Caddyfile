@@ -1,0 +1,22 @@
+:80 {
+	encode zstd gzip
+
+	handle /tiles/* {
+		root * /srv
+		file_server
+		header {
+			Access-Control-Allow-Origin   *
+			Access-Control-Allow-Methods  "GET, HEAD, OPTIONS"
+			Access-Control-Allow-Headers  "Range"
+			Access-Control-Expose-Headers "Content-Length, Content-Range"
+			Cache-Control                 "public, max-age=86400"
+		}
+
+		@pmtiles path *.pmtiles
+		header @pmtiles Content-Type application/octet-stream
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+}

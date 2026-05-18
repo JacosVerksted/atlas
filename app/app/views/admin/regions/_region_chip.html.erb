@@ -1,0 +1,24 @@
+<%
+  # Lightweight size hint derived from the region name. Exact sizes come from
+  # ApplyProjection but are too noisy on chips; bucket is enough to set expectations.
+  size_hint = case region.name
+              when "planet"                              then "~1.1 TB"
+              when "europe"                              then "~460 GB"
+              when "germany", "france", "italy"          then "~75 GB"
+              when /multi/                               then "~25 GB"
+              else                                            "~15 GB"
+              end
+%>
+<label class="flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer transition-colors
+              <%= selected ? 'border-primary bg-primary/10' : 'border-base-300 hover:bg-base-200/60' %>">
+  <input type="checkbox"
+         name="regions[]"
+         value="<%= region.name %>"
+         class="checkbox checkbox-xs checkbox-primary"
+         <%= "checked" if selected %>
+         data-action="change->regions#toggle">
+  <span class="flex-1 min-w-0">
+    <span class="block font-medium text-sm truncate"><%= region.label %></span>
+    <span class="block font-mono text-[10px] text-base-content/55 tabular-nums"><%= size_hint %></span>
+  </span>
+</label>

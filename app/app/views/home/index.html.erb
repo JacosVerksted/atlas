@@ -1,0 +1,110 @@
+<% content_for :title, "Dawarich Atlas" %>
+
+<%= turbo_stream_from "region_channel" %>
+<%= turbo_stream_from "services_channel" %>
+<%= render "home/region_meta", region: @region %>
+<%= render "home/degradation_banner", degraded: @degraded %>
+<%= render "home/region_pill", region: @region %>
+
+<div class="fixed inset-0 p-2 sm:p-3 bg-base-200 flex gap-2 sm:gap-3">
+
+  <%# === Side panel (flat on the page background, no card chrome) === %>
+  <aside
+    data-controller="side-panel theme"
+    data-side-panel-active-value="search"
+    data-side-panel-expanded-value="true"
+    class="flex flex-col flex-none"
+  >
+    <%# Brand header — wordmark hides when panel collapses %>
+    <div class="apo-brand px-2.5 py-3 flex items-center gap-2.5 flex-shrink-0">
+      <span class="w-2.5 h-2.5 rounded-full bg-primary shadow-sm flex-shrink-0"></span>
+      <span class="apo-brand-text font-display font-semibold text-[15px] leading-none tracking-tight whitespace-nowrap text-base-content">
+        Dawarich Atlas
+      </span>
+    </div>
+
+    <%# Rail + content %>
+    <div class="flex flex-1 min-h-0">
+      <%# Icon rail (always visible) %>
+      <nav class="flex flex-col gap-1 p-1.5 flex-shrink-0">
+        <button type="button"
+                class="btn btn-square btn-sm"
+                data-tab="search"
+                data-side-panel-target="tab"
+                data-action="side-panel#select"
+                aria-label="Search"
+                title="Search">
+          <%= icon "search", class: "w-5 h-5" %>
+        </button>
+        <button type="button"
+                class="btn btn-square btn-sm"
+                data-tab="route"
+                data-side-panel-target="tab"
+                data-action="side-panel#select"
+                aria-label="Directions"
+                title="Directions">
+          <%= icon "route", class: "w-5 h-5" %>
+        </button>
+        <button type="button"
+                class="btn btn-square btn-sm"
+                data-tab="places"
+                data-side-panel-target="tab"
+                data-action="side-panel#select"
+                aria-label="Places"
+                title="Places">
+          <%= icon "map-pin", class: "w-5 h-5" %>
+        </button>
+        <button type="button"
+                class="btn btn-square btn-sm"
+                data-tab="settings"
+                data-side-panel-target="tab"
+                data-action="side-panel#select"
+                aria-label="Settings"
+                title="Settings">
+          <%= icon "settings", class: "w-5 h-5" %>
+        </button>
+        <div class="flex-1"></div>
+        <button type="button"
+                class="btn btn-square btn-sm btn-ghost"
+                data-action="theme#toggle"
+                aria-label="Toggle light/dark"
+                title="Toggle light/dark">
+          <span data-theme-target="icon"><%= icon "moon", class: "w-4 h-4" %></span>
+        </button>
+      </nav>
+
+      <%# Content column (hides on collapse) %>
+      <div
+        data-side-panel-target="content"
+        class="w-[min(85vw,380px)] flex flex-col overflow-hidden"
+      >
+        <div data-tab="search"   data-side-panel-target="body" class="flex-1 min-h-0">
+          <%= render "home/search_card" %>
+        </div>
+        <div data-tab="route"    data-side-panel-target="body" class="hidden flex-1 min-h-0">
+          <%= render "home/directions_card" %>
+        </div>
+        <div data-tab="places"   data-side-panel-target="body" class="hidden flex-1 min-h-0">
+          <%= render "home/places_card" %>
+        </div>
+        <div data-tab="settings" data-side-panel-target="body" class="hidden flex-1 min-h-0">
+          <%= render "home/settings_panel" %>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <%# === Map container === %>
+  <div
+    data-controller="map"
+    data-map-tiles-url-value="<%= @tiles_url %>"
+    data-map-theme-value="<%= @theme %>"
+    data-map-lat-value="<%= @default_lat %>"
+    data-map-lon-value="<%= @default_lon %>"
+    data-map-zoom-value="<%= @default_zoom %>"
+    class="relative flex-1 min-w-0 rounded-2xl border border-base-300 bg-base-100 overflow-hidden"
+  >
+    <div id="map" class="absolute inset-0" data-map-target="canvas"></div>
+  </div>
+
+</div>

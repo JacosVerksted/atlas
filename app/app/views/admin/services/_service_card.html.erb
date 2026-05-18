@@ -1,0 +1,215 @@
+<%
+  status_dot = case service.status
+               when "ready"                                        then "bg-success"
+               when "starting", "downloading", "building"          then "bg-warning animate-pulse"
+               when "error", "unhealthy"                           then "bg-error"
+               when "stopped"                                      then "bg-base-300"
+               else                                                     "bg-base-300/60"
+               end
+  badge_class = case service.status
+                when "ready"                                        then "badge-success"
+                when "starting", "downloading", "building"          then "badge-warning"
+                when "error", "unhealthy"                           then "badge-error"
+                when "stopped"                                      then "badge-ghost"
+                else                                                     "badge-ghost"
+                end
+  phase_label = service.phase.presence || service.status
+  error_msg   = service.last_error.presence ||
+                (service.status.in?(%w[error unhealthy]) && service.last_log.to_s.match?(/error|fail|denied/i) ? service.last_log : nil)
+  stale_secs  = service.last_seen_at ? (Time.current - service.last_seen_at).to_i : nil
+  stale       = stale_secs && stale_secs > 30
+%>
+
+<div id="service_<%= service.name %>"
+     class="group relative pl-3 pr-2 py-2 rounded-md hover:bg-base-200/40 transition-colors"
+     data-name="<%= service.name %>"
+     data-controller="service-logs"
+     data-service-logs-name-value="<%= service.name %>"
+     data-service-logs-url-value="<%= admin_service_logs_path(name: service.name) %>">
+  <span class="absolute left-0 top-0 bottom-0 w-1 rounded-l-md <%= status_dot %> <%= 'opacity-40' if stale %>"></span>
+
+  <div class="flex items-center gap-2">
+    <span class="font-mono text-sm flex-1 min-w-0 truncate flex items-center gap-1.5">
+      <%= service.name %>
+      <button type="button"
+              popovertarget="popover_<%= service.name %>"
+              class="text-base-content/40 hover:text-base-content/80 cursor-pointer inline-flex focus:outline-none focus:text-base-content/80 shrink-0"
+              style="anchor-name: --info-<%= service.name %>;"
+              aria-label="About <%= service.name %>">
+        <%= icon "info", class: "w-3.5 h-3.5" %>
+      </button>
+      <button type="button"
+              class="text-base-content/40 hover:text-base-content/80 cursor-pointer inline-flex focus:outline-none focus:text-base-content/80 shrink-0"
+              data-action="service-logs#toggle"
+              aria-label="View logs for <%= service.name %>"
+              title="Logs">
+        <%= icon "scroll-text", class: "w-3.5 h-3.5" %>
+      </button>
+    </span>
+    <span class="badge badge-sm <%= badge_class %> <%= 'opacity-50' if stale %>"><%= phase_label %></span>
+    <% if service.disk_bytes&.positive? %>
+      <span class="text-xs text-base-content/60 tabular-nums whitespace-nowrap w-16 text-right"><%= number_to_human_size(service.disk_bytes) %></span>
+    <% else %>
+      <span class="text-xs text-base-content/30 tabular-nums w-16 text-right">—</span>
+    <% end %>
+    <label class="cursor-pointer shrink-0 flex flex-col items-end gap-0.5"
+           data-controller="service-toggle"
+           data-service-toggle-name-value="<%= service.name %>"
+           data-service-toggle-current-value="<%= service.enabled %>">
+      <input type="checkbox"
+             class="toggle toggle-sm toggle-primary"
+             data-service-toggle-target="input"
+             data-action="change->service-toggle#flip"
+             <%= "checked" if service.enabled %>>
+      <span class="font-mono text-[9px] uppercase tracking-[0.14em] text-warning font-medium"
+            data-service-toggle-target="badge"
+            hidden></span>
+    </label>
+  </div>
+
+  <% if service.progress&.positive? && !service.ready? %>
+    <progress class="progress progress-warning w-full h-1 mt-2" value="<%= (service.progress * 100).to_i %>" max="100"></progress>
+  <% end %>
+
+  <div class="flex items-center justify-between gap-2 mt-1">
+    <div class="min-w-0 flex-1">
+      <% if error_msg %>
+        <div class="text-xs text-error truncate" title="<%= error_msg %>"><%= error_msg.to_s.truncate(120) %></div>
+      <% elsif service.last_log.present? %>
+        <div class="text-[10px] text-base-content/40 italic font-mono truncate"><%= service.last_log.to_s.truncate(90) %></div>
+      <% end %>
+    </div>
+    <% if stale %>
+      <span class="text-[10px] text-base-content/40 tabular-nums shrink-0"
+            title="Last update from sidecar: <%= service.last_seen_at&.iso8601 %>">
+        <%= time_ago_in_words(service.last_seen_at) %> ago
+      </span>
+    <% end %>
+  </div>
+
+  <%# Dataset auto-update controls %>
+  <% if (entry = service.dataset_entry) %>
+    <details class="mt-2 border-t border-base-200 pt-2 group/updates">
+      <summary class="cursor-pointer select-none flex items-center justify-between gap-2 list-none text-xs">
+        <span class="flex items-center gap-1.5 text-base-content/70">
+          <%= icon "refresh-cw", class: "w-3 h-3" %>
+          <span class="font-mono uppercase tracking-[0.14em] text-[10px]">Updates</span>
+          <% if service.update_running? %>
+            <span class="badge badge-xs badge-warning">running</span>
+          <% elsif service.update_failed? %>
+            <span class="badge badge-xs badge-error">failed</span>
+          <% end %>
+        </span>
+        <span class="text-[10px] text-base-content/50 tabular-nums" title="<%= service.dataset_updated_at&.iso8601 %>">
+          <%= service.freshness_label %>
+        </span>
+      </summary>
+
+      <div class="mt-2 pl-1 grid grid-cols-1 gap-2 text-xs">
+        <div class="text-[10px] text-base-content/60 leading-relaxed">
+          <span class="font-mono uppercase tracking-[0.14em] text-base-content/40">Disk</span>
+          <span><%= entry.disk_impact_summary %></span>
+        </div>
+
+        <% if entry.manual_only? %>
+          <div class="text-[10px] text-base-content/60 italic">Manual updates only — no scheduled refresh.</div>
+        <% elsif entry.continuous? %>
+          <div class="text-[10px] text-success/80 flex items-center gap-1.5">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
+            Live — diff stream auto-applied
+          </div>
+        <% else %>
+          <%# Auto-update toggle %>
+          <%= form_with url: admin_service_toggle_auto_path(name: service.name), method: :patch,
+                        data: { turbo_frame: "_top" }, html: { class: "flex items-center justify-between gap-2" } do |f| %>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <%= f.check_box :auto_update_enabled,
+                              { class: "toggle toggle-xs toggle-primary",
+                                checked: service.auto_update_enabled,
+                                onchange: "this.form.requestSubmit()" },
+                              "true", "false" %>
+              <span class="text-[11px]">Auto-update</span>
+              <% if service.update_failed? %>
+                <span class="text-[10px] text-error/80" title="Update failed; toggle disabled until you re-arm via Update now.">
+                  (kill-switch)
+                </span>
+              <% end %>
+            </label>
+          <% end %>
+
+          <%# Schedule field %>
+          <%= form_with url: admin_service_schedule_path(name: service.name), method: :patch,
+                        data: { turbo_frame: "_top" }, html: { class: "flex items-center gap-2" } do |f| %>
+            <span class="font-mono uppercase tracking-[0.14em] text-[10px] text-base-content/40 shrink-0">Cron</span>
+            <%= f.text_field :update_schedule_cron,
+                             value: service.update_schedule_cron,
+                             placeholder: entry.default_schedule,
+                             class: "input input-bordered input-xs flex-1 font-mono text-[11px]" %>
+            <%= f.submit "Save", class: "btn btn-xs btn-ghost" %>
+          <% end %>
+        <% end %>
+
+        <%# Update now button %>
+        <%= button_to admin_service_update_path(name: service.name),
+                      method: :post,
+                      data: { turbo_frame: "_top" },
+                      disabled: service.update_running?,
+                      class: "btn btn-xs btn-outline btn-primary w-full" do %>
+          <%= icon "refresh-cw", class: "w-3 h-3 #{'animate-spin' if service.update_running?}" %>
+          <span><%= service.update_running? ? "Updating…" : "Update now" %></span>
+        <% end %>
+
+        <% if service.update_failed? && service.last_update_error.present? %>
+          <div class="text-[10px] text-error/80 italic" title="<%= service.last_update_error %>">
+            <%= service.last_update_error.truncate(140) %>
+          </div>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+
+  <%# Expandable logs panel %>
+  <div class="hidden mt-2 rounded-md bg-slate-900 text-slate-100 border border-slate-800 overflow-hidden"
+       data-service-logs-target="panel">
+    <div class="flex items-center justify-between px-2 py-1 bg-slate-800/60 border-b border-slate-700">
+      <div class="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-slate-400">
+        <%= icon "scroll-text", class: "w-3 h-3" %>
+        <span><%= service.name %> · last 200 lines</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button type="button"
+                class="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-400 hover:text-slate-100"
+                data-action="service-logs#refresh"
+                title="Refresh now">refresh</button>
+        <label class="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-400 flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" class="accent-emerald-500" data-action="change->service-logs#toggleAutoRefresh" data-service-logs-target="autoRefresh">
+          <span>auto</span>
+        </label>
+        <button type="button"
+                class="text-slate-400 hover:text-slate-100"
+                data-action="service-logs#toggle"
+                aria-label="Close logs">
+          <%= icon "x", class: "w-3.5 h-3.5" %>
+        </button>
+      </div>
+    </div>
+    <pre class="text-[10px] leading-snug font-mono px-2 py-2 max-h-64 overflow-auto whitespace-pre-wrap"
+         data-service-logs-target="output">Loading…</pre>
+  </div>
+</div>
+
+<div id="popover_<%= service.name %>"
+     popover="auto"
+     class="service-info-popover card card-compact bg-base-100 shadow-2xl border border-base-300 w-80 m-0 p-0"
+     style="position-anchor: --info-<%= service.name %>;
+            top: anchor(--info-<%= service.name %> center);
+            left: calc(anchor(--info-<%= service.name %> right) + 0.5rem);
+            transform: translateY(-50%);">
+  <div class="card-body">
+    <h3 class="font-mono text-sm font-semibold flex items-center gap-2">
+      <%= icon "info", class: "w-4 h-4 text-info" %>
+      <%= service.name %>
+    </h3>
+    <p class="text-xs text-base-content/80 leading-snug whitespace-normal"><%= service_description(service.name) %></p>
+  </div>
+</div>

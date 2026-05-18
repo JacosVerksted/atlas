@@ -1,0 +1,5 @@
+<% region = local_assigns[:region] || RegionContext.current(regions_dir: defined?(@regions_dir) && @regions_dir || Rails.root.join("..", "regions")) %>
+<meta id="region_meta"
+      data-lat="<%= region.lat %>"
+      data-lon="<%= region.lon %>"
+      data-zoom="<%= region.zoom %>">

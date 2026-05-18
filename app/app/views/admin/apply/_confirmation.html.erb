@@ -1,0 +1,70 @@
+<%
+  intents ||= []
+  enables  = intents.select { |i| i[:enabled] }
+  disables = intents.reject { |i| i[:enabled] }
+%>
+<div class="modal modal-open" data-controller="confirm">
+  <div class="modal-box max-w-lg">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-primary/80">Apply</div>
+        <h3 class="font-display font-semibold text-lg leading-tight mt-0.5">Confirm changes</h3>
+      </div>
+      <button type="button"
+              class="btn btn-sm btn-circle btn-ghost"
+              aria-label="Close"
+              data-action="confirm#close">
+        <%= icon "x", class: "w-4 h-4" %>
+      </button>
+    </div>
+
+    <p class="py-2 text-sm">
+      You're about to download approximately
+      <strong><%= projection.total_disk_gb %> GB</strong> and
+      wait roughly <strong><%= projection.first_boot_hours %> hours</strong>.
+    </p>
+
+    <% if intents.any? %>
+      <div class="bg-base-200/50 rounded-box p-3 my-2 text-sm">
+        <div class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/55 mb-1.5">Service changes</div>
+        <% if enables.any? %>
+          <div class="text-success">
+            <%= icon "plus", class: "w-3.5 h-3.5 inline" %>
+            Enable: <span class="font-mono"><%= enables.map { |i| i[:name] }.join(", ") %></span>
+          </div>
+        <% end %>
+        <% if disables.any? %>
+          <div class="text-warning">
+            <%= icon "minus", class: "w-3.5 h-3.5 inline" %>
+            Disable: <span class="font-mono"><%= disables.map { |i| i[:name] }.join(", ") %></span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <table class="table table-xs">
+      <thead><tr><th>Service</th><th class="text-right">Disk (GB)</th><th class="text-right">Hours</th></tr></thead>
+      <tbody>
+        <% projection.lines.each do |line| %>
+          <tr>
+            <td class="font-mono"><%= line[:name] %></td>
+            <td class="text-right tabular-nums"><%= line[:disk_gb] %></td>
+            <td class="text-right tabular-nums"><%= line[:hours] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <div class="modal-action">
+      <button type="button" class="btn btn-ghost" data-action="confirm#close">Cancel</button>
+      <%= form_with url: admin_apply_path, method: :post, data: { turbo_stream: true } do |f| %>
+        <%= f.hidden_field :confirmed, value: "true" %>
+        <% intents.each_with_index do |intent, idx| %>
+          <%= hidden_field_tag "service_intents[][name]",    intent[:name] %>
+          <%= hidden_field_tag "service_intents[][enabled]", intent[:enabled] %>
+        <% end %>
+        <%= f.submit "Confirm", class: "btn btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+</div>

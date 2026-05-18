@@ -1,0 +1,14 @@
+<%# Auto-dismissing notice shown after Confirm. Replaces the modal contents,
+    visually pops a toast in the top-center, and hides itself after a short timer. %>
+<div data-controller="auto-dismiss"
+     data-auto-dismiss-delay-value="4000"
+     class="fixed top-4 left-1/2 -translate-x-1/2 z-50 alert alert-success shadow-xl max-w-md">
+  <%= icon "circle-check", class: "w-5 h-5" %>
+  <div>
+    <div class="font-semibold">Apply started</div>
+    <div class="text-xs">
+      Downloading ~<%= projection.total_disk_gb %> GB · ETA ~<%= projection.first_boot_hours %> h.
+      Watch the Services list for progress.
+    </div>
+  </div>
+</div>

@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+
+data/*
+!data/.gitkeep
+!data/**/.gitkeep
+
+.playwright-cli/
+.claude/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+/tmp/
+---
+# Stray root-level JS (the real ones are under app/ and apo-control/)
+/node_modules/
+/package.json
+/package-lock.json

@@ -1,0 +1,7 @@
+services:
+  - name: photon
+    timeline:
+      - {at: 0s,   phase: starting,    progress: 0.0,  ready: false}
+      - {at: 1s,   phase: downloading, progress: 0.5,  ready: false}
+      - {at: 2s,   phase: extracting,  progress: 0.9,  ready: false}
+      - {at: 3s,   phase: ready,       progress: 1.0,  ready: true}
