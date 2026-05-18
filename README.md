@@ -4,6 +4,14 @@ A local-first, self-hostable maps stack. Built on OpenStreetMap data and FOSS co
 
 Atlas is the maps engine that powers Dawarich, packaged so it stands on its own — install it on your own box, plug your own clients into the API.
 
+## Screenshots
+
+| Search | Routing |
+|---|---|
+| ![Search panel with Photon results over MapLibre](images/atlas-search.png) | ![Routing panel with Valhalla directions](images/atlas-routing.png) |
+| **POIs** | **Settings** |
+| ![POI category picker over Overpass results](images/atlas-pois.png) | ![Admin Settings tab: regions, services, basemap](images/atlas-settings.png) |
+
 ## Design principles
 
 1. **Local-first.** Every layer runs on your hardware. No outbound API calls at runtime.
