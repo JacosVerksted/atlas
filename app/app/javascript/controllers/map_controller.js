@@ -78,15 +78,24 @@ export default class extends Controller {
 
     this.markers = []
     this.routeEndpoints = {}
-    this.element.addEventListener("atlas:flyto",      (e) => this.flyTo(e.detail))
-    this.element.addEventListener("atlas:setresults", (e) => this.renderResults(e.detail))
-    this.element.addEventListener("atlas:routing:endpoint",      (e) => this.setRouteEndpoint(e.detail))
-    this.element.addEventListener("atlas:routing:clearendpoint", (e) => this.clearRouteEndpoint(e.detail.role))
-    this.element.addEventListener("atlas:routing:show",          (e) => this.showRoute(e.detail))
-    this.element.addEventListener("atlas:routing:transit",       (e) => this.showTransit(e.detail))
-    this.element.addEventListener("atlas:routing:clear",         ()  => this.clearRoute())
-    this.element.addEventListener("atlas:places:show",           (e) => this.showPlaces(e.detail.features))
-    this.element.addEventListener("atlas:places:clear",          ()  => this.clearPlaces())
+    // Cross-controller events come from sibling panels (search/routing/places)
+    // and bubble up to window. Listening on this.element (a sibling, not an
+    // ancestor) would silently miss every event. Store refs so disconnect()
+    // can clean them up across Turbo reloads.
+    this.crossControllerHandlers = {
+      "atlas:flyto":                  (e) => this.flyTo(e.detail),
+      "atlas:setresults":             (e) => this.renderResults(e.detail),
+      "atlas:routing:endpoint":       (e) => this.setRouteEndpoint(e.detail),
+      "atlas:routing:clearendpoint":  (e) => this.clearRouteEndpoint(e.detail.role),
+      "atlas:routing:show":           (e) => this.showRoute(e.detail),
+      "atlas:routing:transit":        (e) => this.showTransit(e.detail),
+      "atlas:routing:clear":          ()  => this.clearRoute(),
+      "atlas:places:show":            (e) => this.showPlaces(e.detail.features),
+      "atlas:places:clear":           ()  => this.clearPlaces(),
+    }
+    for (const [name, handler] of Object.entries(this.crossControllerHandlers)) {
+      window.addEventListener(name, handler)
+    }
 
     // Swap to a dark map variant on global theme change. For OpenFreeMap we
     // know the style URLs; for pmtiles we toggle the protomaps theme.
@@ -178,6 +187,11 @@ export default class extends Controller {
     if (this.regionObserver) this.regionObserver.disconnect()
     if (this.bboxRequestHandler) window.removeEventListener("atlas:map:bbox-request", this.bboxRequestHandler)
     if (this.popupActionHandler) document.removeEventListener("click", this.popupActionHandler)
+    if (this.crossControllerHandlers) {
+      for (const [name, handler] of Object.entries(this.crossControllerHandlers)) {
+        window.removeEventListener(name, handler)
+      }
+    }
     if (this.map) this.map.remove()
   }
 
