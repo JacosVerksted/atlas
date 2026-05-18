@@ -64,7 +64,7 @@ Atlas is the maps engine that powers Dawarich, packaged so it stands on its own 
 
 ## Layer status
 
-Legend: `done` / `wip` / `planned` / `omitted`
+Legend: `done` / `wip` / `planned`
 
 | # | Layer | Status | Component | Data source | Downloadable | MapLibre integration |
 |---|-------|--------|-----------|-------------|--------------|---------------------|
@@ -79,10 +79,6 @@ Legend: `done` / `wip` / `planned` / `omitted`
 | 9 | POI lookup ("what's here") | scaffolded (`overpass`) | Overpass API self-hosted | OSM PBF | Yes — Geofabrik extract ingested via `wiktorn/overpass-api` Docker image | Stimulus controller → Rails `/api/whats-here` → GeoJSON |
 | 10 | Time zone lookup | planned | `timezone_resolver` gem or `tzinfo` + `rgeo` | OSM-derived tz boundaries | Yes — bundled | Server-side helper, no map layer |
 | 11 | Transit | scaffolded (`otp`) | OpenTripPlanner 2 (multimodal journey planner combining OSM road graph + GTFS schedules) | GTFS feeds + OSM | Yes — [transitous.org](https://transitous.org/) aggregates worldwide GTFS | Custom — fetch route, render GeoJSON |
-| 12 | Street imagery | **omitted** | — | — | — | — |
-| 13 | Satellite / aerial | **omitted** | — | — | — | — |
-| 14 | Real-time traffic | **omitted** | — | — | — | — |
-| 15 | Wikidata enrichment | **omitted** | — | — | — | — |
 
 ### Architectural decision: Nominatim dropped
 
@@ -93,13 +89,6 @@ Originally the geocoding stack included Nominatim for structured address hierarc
 - **libpostal** — handles query normalization.
 
 Trade-off: lose Nominatim's fine-grained structured-address API (`address.house_number`, `address.road`, etc.). Photon still returns these as OSM tags, just less polished. If we later need true structured addresses, Nominatim can be added back without disturbing the other services.
-
-### On omitted layers
-
-- **Street imagery** (Mapillary/Panoramax): requires field-collected 360° photography. Coverage is sparse outside major cities. Out of scope.
-- **Satellite/aerial**: high-res imagery (sub-meter) is licensed. Free Sentinel-2 (10m) costs terabytes of storage and weekly refresh churn. Out of scope.
-- **Real-time traffic**: no FOSS planet-scale source. Could theoretically be reconstructed from aggregate user GPS traces but that's a separate project.
-- **Wikidata enrichment**: a local SPARQL endpoint (QLever, Blazegraph) is heavy infrastructure for marginal UX gain. Out of scope.
 
 ## Ports
 
