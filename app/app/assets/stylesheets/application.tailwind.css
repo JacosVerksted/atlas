@@ -342,6 +342,12 @@ body.apo-picking .maplibregl-canvas { cursor: crosshair !important; }
   background: var(--color-base-200) !important;
 }
 
+/* MapLibre ships dark SVG icons for zoom/compass — invert them in the dark
+   theme so they stay legible on the dark control background. */
+[data-theme="bunker-brutalist"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.1);
+}
+
 .maplibregl-ctrl-attrib {
   background: color-mix(in oklch, var(--color-base-100) 90%, transparent) !important;
   border-radius: var(--radius-field) !important;
