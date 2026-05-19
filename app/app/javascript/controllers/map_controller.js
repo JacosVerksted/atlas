@@ -64,6 +64,7 @@ export default class extends Controller {
     })
 
     this.map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right")
+    this.map.addControl(new maplibregl.GlobeControl(), "bottom-right")
     this.map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left")
 
     this.markers = []
