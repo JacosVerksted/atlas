@@ -1,0 +1,91 @@
+name: Release on changelog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CHANGELOG.md'
+      - '.github/workflows/release-on-changelog.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: release-on-changelog
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag & release if new version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse top version from CHANGELOG.md
+        id: parse
+        run: |
+          set -euo pipefail
+
+          version="$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '[]' | awk '{print $2}')"
+          if [ -z "$version" ]; then
+            echo "::error::No version heading like '## [x.y.z]' found at the top of CHANGELOG.md"
+            exit 1
+          fi
+
+          tag="v${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+          awk -v ver="${version}" '
+            $0 ~ "^## \\[" ver "\\]" { capture = 1; next }
+            capture && /^## \[/        { exit }
+            capture                    { print }
+          ' CHANGELOG.md > /tmp/release-body.md
+
+          if [ ! -s /tmp/release-body.md ]; then
+            echo "::error::CHANGELOG section for ${version} is empty"
+            exit 1
+          fi
+
+          {
+            echo "body<<RELEASE_BODY_EOF"
+            cat /tmp/release-body.md
+            echo "RELEASE_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Parsed version: ${version} -> tag ${tag}"
+
+      - name: Skip if tag already exists
+        id: exists
+        env:
+          TAG: ${{ steps.parse.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "Tag ${TAG} already exists, nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag
+        if: steps.exists.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.parse.outputs.tag }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+
+      - name: Create GitHub release
+        if: steps.exists.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.parse.outputs.tag }}
+        run: |
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --notes-file /tmp/release-body.md
