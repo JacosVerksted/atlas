@@ -19,7 +19,7 @@ services:
     environment:
       RAILS_ENV: production
       DATABASE_URL: ${DATABASE_URL:-sqlite3:/data/app.sqlite3}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set SECRET_KEY_BASE in .env}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-}
       RAILS_LOG_TO_STDOUT: "true"
       RAILS_SERVE_STATIC_FILES: "true"
       SOLID_QUEUE_IN_PUMA: "1"

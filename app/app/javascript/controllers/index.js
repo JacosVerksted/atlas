@@ -14,6 +14,7 @@ import ServiceToggleController from "./service_toggle_controller"
 import ServiceLogsController   from "./service_logs_controller"
 import BasemapController       from "./basemap_controller"
 import ThemeController         from "./theme_controller"
+import StaticMapController     from "./static_map_controller"
 
 application.register("map", MapController)
 application.register("search", SearchController)
@@ -29,3 +30,4 @@ application.register("service-toggle", ServiceToggleController)
 application.register("service-logs",   ServiceLogsController)
 application.register("basemap",        BasemapController)
 application.register("theme",          ThemeController)
+application.register("static-map",     StaticMapController)

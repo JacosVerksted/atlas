@@ -1,5 +1,19 @@
 #!/bin/bash -e
 
+# Auto-generate SECRET_KEY_BASE on first boot if the operator hasn't supplied
+# one. We persist it inside /data (the bind-mounted app volume) so it stays
+# stable across container recreates — Rails uses it to sign cookies and
+# encrypted credentials, and rotating it logs everyone out.
+if [ -z "${SECRET_KEY_BASE:-}" ]; then
+  secret_file="/data/.secret_key_base"
+  mkdir -p /data
+  if [ ! -s "$secret_file" ]; then
+    ruby -rsecurerandom -e 'print SecureRandom.hex(64)' > "$secret_file"
+    chmod 600 "$secret_file"
+  fi
+  export SECRET_KEY_BASE="$(cat "$secret_file")"
+fi
+
 # On every Rails server boot:
 #   1. db:prepare  — create each DB if missing (primary/queue/cache/cable),
 #                    load schema.rb on first run, run pending migrations on

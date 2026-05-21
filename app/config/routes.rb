@@ -35,5 +35,7 @@ Rails.application.routes.draw do
     patch "tiles/theme",         to: "tiles#update_theme", as: :tiles_theme
   end
 
+  get "static_map", to: "static_maps#show", as: :static_map
+
   root "home#index"
 end

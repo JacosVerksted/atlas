@@ -17,11 +17,21 @@ Atlas is the maps engine that powers Dawarich, packaged so it stands on its own 
 ```bash
 git clone https://github.com/dawarich-app/atlas.git
 cd atlas
+docker compose up -d
+```
+
+That's it — no `.env` file required. The app auto-generates a `SECRET_KEY_BASE` on first boot (persisted to `data/app/.secret_key_base`) and stores its data in a local SQLite file under `data/app/`.
+
+Visit [http://localhost:8484](http://localhost:8484). The map page is live as soon as Caddy and Atlas come up. Open the **Settings** tab in the side panel to toggle Search / Routing / POIs / Transit and pick the active region. Save & apply — the sidecar handles downloads and ingest, with progress streaming back over Action Cable.
+
+To pin a specific region preset up front (instead of picking in the UI), copy one into `.env` before booting:
+
+```bash
 cp regions/berlin.env .env
 docker compose up -d
 ```
 
-Visit [http://localhost:8484](http://localhost:8484). The map page is live as soon as Caddy and Atlas come up. Open the **Settings** tab in the side panel to toggle Search / Routing / POIs / Transit and pick the active region. Save & apply — the sidecar handles downloads and ingest, with progress streaming back over Action Cable.
+See [`.env.example`](./.env.example) for the optional overrides (custom `SECRET_KEY_BASE`, external Postgres via `DATABASE_URL`, admin credentials, basemap URL).
 
 City scale boots in minutes; country takes hours of background ingest; planet takes days.
 

@@ -1,0 +1,34 @@
+<div
+  id="static-map"
+  data-controller="static-map"
+  data-static-map-tiles-url-value="<%= @tiles_url %>"
+  data-static-map-theme-value="<%= @theme %>"
+  data-static-map-lat-value="<%= @lat %>"
+  data-static-map-lon-value="<%= @lon %>"
+  data-static-map-zoom-value="<%= @zoom %>"
+  data-static-map-route-value="<%= @route %>"
+  data-static-map-fit-value="<%= @fit %>"
+  style="position: absolute; inset: 0; width: <%= @width %>px; height: <%= @height %>px; overflow: hidden;"
+>
+  <div data-static-map-target="canvas" style="position: absolute; inset: 0;"></div>
+
+  <% if @title.present? || @subtitle.present? %>
+    <div style="position: absolute; left: 16px; top: 16px; max-width: 70%; padding: 10px 14px; background: rgba(255,255,255,0.92); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); backdrop-filter: blur(6px);">
+      <% if @title.present? %>
+        <div style="font-size: 16px; font-weight: 600; color: #1a1a1a; line-height: 1.2;"><%= @title %></div>
+      <% end %>
+      <% if @subtitle.present? %>
+        <div style="font-size: 12px; color: #555; margin-top: 2px;"><%= @subtitle %></div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div style="position: absolute; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: rgba(255,255,255,0.85); border-radius: 999px; font-size: 11px; color: #333;">
+    <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #2F5D3E;"></span>
+    <span style="font-weight: 600; letter-spacing: 0.01em;"><%= @brand %></span>
+  </div>
+
+  <div style="position: absolute; left: 12px; bottom: 8px; font-size: 9px; color: rgba(0,0,0,0.55); text-shadow: 0 0 2px rgba(255,255,255,0.9);">
+    © OpenStreetMap · Protomaps
+  </div>
+</div>
