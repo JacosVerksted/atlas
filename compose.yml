@@ -59,8 +59,9 @@ services:
       DATA_DIR:             /work/data
       REGIONS_DIR:          /work/regions
       LISTEN_ADDR:          ":8090"
+      DOCKER_HOST:          ${DOCKER_HOST:-unix:///var/run/docker.sock}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       - .:/work:ro
       - ./data:/work/data
     restart: unless-stopped
