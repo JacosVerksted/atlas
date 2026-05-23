@@ -5,6 +5,11 @@ services:
     volumes:
       - ./nginx-tiles.conf:/etc/nginx/conf.d/default.conf:ro
       - ./data/tiles:/usr/share/nginx/html/tiles:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   postgres:
@@ -16,13 +21,20 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-atlas}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atlas}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   app:
     image: ${APP_IMAGE:-ghcr.io/dawarich-app/atlas/app:latest}
     pull_policy: ${APP_PULL_POLICY:-always}
     container_name: atlas-app
-    depends_on: [postgres]
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       RAILS_ENV: production
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-atlas}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-atlas}}
@@ -30,7 +42,7 @@ services:
       RAILS_LOG_TO_STDOUT: "true"
       RAILS_SERVE_STATIC_FILES: "true"
       SOLID_QUEUE_IN_PUMA: "1"
-      PHOTON_URL: http://photon:2322
+      PHOTON_URL: ${PHOTON_URL:-http://photon:2322}
       PLACEHOLDER_URL: http://placeholder:3000
       LIBPOSTAL_URL: http://libpostal:4400
       VALHALLA_URL: http://valhalla:8002
@@ -38,15 +50,21 @@ services:
       OTP_URL: http://otp:8080
       TILES_URL: ${TILES_URL:-}
       TILES_THEME: ${TILES_THEME:-light}
-      DEFAULT_LAT: ${DEFAULT_LAT:-51.1657}
-      DEFAULT_LON: ${DEFAULT_LON:-10.4515}
-      DEFAULT_ZOOM: ${DEFAULT_ZOOM:-2}
+      DEFAULT_LAT: ${DEFAULT_LAT:-65.0}
+      DEFAULT_LON: ${DEFAULT_LON:-15.0}
+      DEFAULT_ZOOM: ${DEFAULT_ZOOM:-5}
       CONTROL_PLANE_URL: http://atlas-control:8090
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - ./data/app:/data
       - ./regions:/rails/regions:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   atlas-control:
@@ -64,34 +82,44 @@ services:
       - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       - .:/work:ro
       - ./data:/work/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   photon:
     image: rtuszik/photon-docker:2.2.0
-    container_name: apo-photon
+    container_name: atlas-photon
     profiles: [geocoding, all]
     environment:
       UPDATE_STRATEGY: PARALLEL
-      # rtuszik/photon-docker reads REGION (NOT COUNTRY_CODE). Empty/unset → planet (~56 GB compressed).
-      REGION: ${COUNTRY_CODE:-de}
+      REGION: ${COUNTRY_CODE:-no}
     volumes:
       - ./data/photon:/photon/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2322/api?q=test&limit=1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
     restart: unless-stopped
 
   whosonfirst:
     image: pelias/whosonfirst:v8.4.0
-    container_name: apo-whosonfirst
+    container_name: atlas-whosonfirst
     profiles: [data-setup]
     user: "${UID:-1001}:${GID:-1001}"
     environment:
-      WHOSONFIRST_COUNTRY_CODE: ${WHOSONFIRST_COUNTRY_CODE:-${COUNTRY_CODE:-de}}
+      WHOSONFIRST_COUNTRY_CODE: ${WHOSONFIRST_COUNTRY_CODE:-${COUNTRY_CODE:-no}}
     volumes:
       - ./data/whosonfirst:/mnt/pelias/whosonfirst
     command: ["bash", "/code/pelias/whosonfirst/bin/download"]
 
   placeholder:
     image: pelias/placeholder:v5.5.0
-    container_name: apo-placeholder
+    container_name: atlas-placeholder
     profiles: [geocoding, all]
     environment:
       PORT: 3000
@@ -100,21 +128,25 @@ services:
     volumes:
       - ./data/placeholder:/data
       - ./data/whosonfirst:/wof:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/demo"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
   libpostal:
     image: pelias/libpostal-service:nodejs-20
-    container_name: apo-libpostal
+    container_name: atlas-libpostal
     profiles: [geocoding, all]
     restart: unless-stopped
 
   valhalla:
     image: ghcr.io/gis-ops/docker-valhalla/valhalla:3.5.1
-    container_name: apo-valhalla
+    container_name: atlas-valhalla
     profiles: [routing, all]
     environment:
-      # gisops/docker-valhalla auto-detects *.osm.pbf inside /custom_files
-      # and builds tiles from them. We don't use tile_urls (not real URLs).
       serve_tiles: "True"
       build_admins: "True"
       build_elevation: ${BUILD_ELEVATION:-False}
@@ -123,22 +155,23 @@ services:
       - ./data/valhalla:/custom_files
       - ./data/srtm:/custom_files/elevation_data
       - ./data/osm:/osm:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8002/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     restart: unless-stopped
 
   overpass:
     image: wiktorn/overpass-api:v0.7.62.11
-    container_name: apo-overpass
+    container_name: atlas-overpass
     profiles: [pois, all]
     environment:
-      # OVERPASS_META=yes ~doubles the memory needed during ingest (stores
-      # author/timestamp per element). Off by default; flip to "yes" if you
-      # need historical/metadata queries and have ≥24 GB Docker VM RAM.
       OVERPASS_META: ${OVERPASS_META:-no}
       OVERPASS_MODE: init
-      # wiktorn/overpass-api needs OSM-XML+bzip2; the sidecar produces this
-      # from the active PBF on every apply (data/osm/current.osm.bz2).
       OVERPASS_PLANET_URL: file:///osm/current.osm.bz2
-      OVERPASS_DIFF_URL: ${OVERPASS_DIFF_URL:-https://download.geofabrik.de/europe/germany-updates/}
+      OVERPASS_DIFF_URL: ${OVERPASS_DIFF_URL:-https://download.geofabrik.de/europe/norway-updates/}
       OVERPASS_RULES_LOAD: 10
       OVERPASS_COMPRESSION: lz4
     volumes:
@@ -148,21 +181,18 @@ services:
 
   otp:
     image: opentripplanner/opentripplanner:2.10.0_2026-05-18T08-51
-    container_name: apo-otp
+    container_name: atlas-otp
     profiles: [transit, all]
-    # `--build --save --serve <dir>` builds the graph from any *.osm.pbf +
-    # *.gtfs.zip files in <dir>, saves graph.obj, then serves the API.
-    # The sidecar's apply step stages those files into data/otp/.
-    # The image's entrypoint already passes /var/opentripplanner/ as the
-    # directory; we only supply flags. Passing the dir twice fails parsing.
     command: ["--build", "--save", "--serve"]
     environment:
-      # Berlin region build needs ~4 GB heap; default OOMs.
-      # Tune via OTP_JAVA_OPTS in .env. Berlin needs ≥4 GB heap; on Docker
-      # Desktop you may also need to raise the VM RAM allocation (Settings →
-      # Resources → Memory) to ≥12 GB before transit will build cleanly.
       JAVA_OPTS: ${OTP_JAVA_OPTS:--Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=500}
     volumes:
       - ./data/otp:/var/opentripplanner
       - ./data/osm:/osm:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/otp/actuators/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
     restart: unless-stopped
