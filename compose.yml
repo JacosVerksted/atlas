@@ -7,13 +7,25 @@ services:
       - ./data/tiles:/usr/share/nginx/html/tiles:ro
     restart: unless-stopped
 
+  postgres:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: atlas-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-atlas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-atlas}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
   app:
     image: ${APP_IMAGE:-ghcr.io/dawarich-app/atlas/app:latest}
     pull_policy: ${APP_PULL_POLICY:-always}
     container_name: atlas-app
+    depends_on: [postgres]
     environment:
       RAILS_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-sqlite3:/data/app.sqlite3}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-atlas}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-atlas}}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-}
       RAILS_LOG_TO_STDOUT: "true"
       RAILS_SERVE_STATIC_FILES: "true"
