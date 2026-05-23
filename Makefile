@@ -12,7 +12,7 @@ help: ## Show this help
 		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo
 	@echo "Common flows:"
-	@echo "  1. make up                   # app + caddy only, no data"
+	@echo "  1. make up                   # app + nginx-tiles only, no data"
 	@echo "  2. make geocoding            # + Photon, Placeholder (with WOF), libpostal"
 	@echo "  3. make routing              # + Valhalla (downloads PBF + SRTM)"
 	@echo "  4. make pois                 # + Overpass (long ingest)"
@@ -22,7 +22,7 @@ help: ## Show this help
 # ─── Lifecycle ────────────────────────────────────────────────────────────
 
 .PHONY: up
-up: env ## Start the bare stack (caddy + app)
+up: env ## Start the bare stack (nginx-tiles + app)
 	$(DC) up -d
 	@echo "→ $(APP_URL)"
 
@@ -31,9 +31,9 @@ down: ## Stop everything (any profile); preserves data volumes
 	$(DC) --profile all --profile data-setup down
 
 .PHONY: restart
-restart: ## Restart caddy + app to pick up a new image
-	$(DC) pull app caddy
-	$(DC) up -d caddy app
+restart: ## Restart nginx-tiles + app to pick up a new image
+	$(DC) pull app nginx-tiles
+	$(DC) up -d nginx-tiles app
 
 .PHONY: status
 status: ## Show running services + health
@@ -264,7 +264,7 @@ tiles-protomaps-latest: ## Fetch today's Protomaps planet PMTiles (~100 GB) — 
 tiles-local: ## Switch app to serve the local PMTiles file at /tiles/basemap.pmtiles
 	@grep -q '^TILES_URL=' .env && sed -i.bak '/^TILES_URL=/d' .env && rm -f .env.bak; \
 	echo "TILES_URL=/tiles/basemap.pmtiles" >> .env; \
-	echo "TILES_URL now points to /tiles/basemap.pmtiles (served by Caddy from data/tiles/)"
+	echo "TILES_URL now points to /tiles/basemap.pmtiles (served by nginx-tiles from data/tiles/)"
 
 # ─── Disk / cleanup ───────────────────────────────────────────────────────
 

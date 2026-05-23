@@ -1,15 +1,10 @@
 services:
-  caddy:
-    image: caddy:2.11.3-alpine
-    container_name: atlas-caddy
+  nginx-tiles:
+    image: nginx:1.27-alpine
+    container_name: atlas-nginx-tiles
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./data/tiles:/srv/tiles:ro
-      - ./data/caddy:/data
-      - ./data/caddy-config:/config
-    ports:
-      - "8484:80"
-    depends_on: [app]
+      - ./nginx-tiles.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data/tiles:/usr/share/nginx/html/tiles:ro
     restart: unless-stopped
 
   app:
