@@ -260,6 +260,24 @@ tiles-protomaps-latest: ## Fetch today's Protomaps planet PMTiles (~100 GB) — 
 	url="https://build.protomaps.com/$$latest.pmtiles"; \
 	$(MAKE) tiles-download URL=$$url
 
+.PHONY: tiles-extract
+tiles-extract: ## Extract regional tiles from Protomaps planet via HTTP range requests (uses TILES_BBOX from .env / region preset)
+	@mkdir -p data/tiles
+	@bbox=$$(grep '^TILES_BBOX=' .env 2>/dev/null | cut -d= -f2-); \
+	if [ -z "$$bbox" ]; then \
+		echo "ERROR: TILES_BBOX not set in .env. Add it or use a region preset that includes it."; \
+		echo "Format: min_lon,min_lat,max_lon,max_lat"; \
+		exit 1; \
+	fi; \
+	latest=$$(date -u +%Y%m%d); \
+	source="https://build.protomaps.com/$$latest.pmtiles"; \
+	target=data/tiles/basemap.pmtiles; \
+	echo "Extracting bbox=$$bbox from $$source"; \
+	echo "This downloads only the tiles within the region, not the full planet."; \
+	docker run --rm -v $$(pwd)/data/tiles:/data protomaps/go-pmtiles:latest \
+		extract "$$source" /data/basemap.pmtiles --bbox="$$bbox" --maxzoom=14; \
+	echo "Done: $$(du -sh $$target | cut -f1)"
+
 .PHONY: tiles-local
 tiles-local: ## Switch app to serve the local PMTiles file at /tiles/basemap.pmtiles
 	@grep -q '^TILES_URL=' .env && sed -i.bak '/^TILES_URL=/d' .env && rm -f .env.bak; \
