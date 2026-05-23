@@ -192,7 +192,7 @@ services:
       - ./data/overpass:/db
       - ./data/osm:/osm:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf 'http://localhost/api/interpreter?data=[out:json];node(1);out;' | grep -q elements"]
+      test: ["CMD-SHELL", "curl -gsf 'http://localhost/api/interpreter?data=[out:json];node(1);out;' | grep -q elements"]
       interval: 30s
       timeout: 10s
       retries: 3
