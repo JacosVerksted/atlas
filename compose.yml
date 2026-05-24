@@ -33,8 +33,11 @@ services:
     restart: unless-stopped
 
   app:
-    image: ${APP_IMAGE:-ghcr.io/dawarich-app/atlas/app:latest}
-    pull_policy: ${APP_PULL_POLICY:-always}
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: atlas-app:local
+    pull_policy: ${APP_PULL_POLICY:-never}
     container_name: atlas-app
     depends_on:
       postgres:
@@ -43,6 +46,7 @@ services:
       default:
       docker_internet:
         ipv4_address: 192.168.31.22
+      photon_backend:
     dns: 192.168.1.4
     environment:
       RAILS_ENV: production
@@ -67,6 +71,7 @@ services:
     volumes:
       - ./data/app:/data
       - ./regions:/rails/regions:ro
+      - ./data/tiles:/rails/public/tiles:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
       interval: 30s
@@ -102,22 +107,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-  photon:
-    image: rtuszik/photon-docker:2.2.0
-    container_name: atlas-photon
-    profiles: [geocoding, all]
-    environment:
-      UPDATE_STRATEGY: PARALLEL
-      REGION: ${COUNTRY_CODE:-no}
-    volumes:
-      - ./data/photon:/photon/data
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:2322/api?q=test&limit=1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-    restart: unless-stopped
 
   whosonfirst:
     image: pelias/whosonfirst:v8.4.0
@@ -201,4 +190,6 @@ services:
 
 networks:
   docker_internet:
+    external: true
+  photon_backend:
     external: true
