@@ -9,28 +9,27 @@ class ApplyProjection
     "placeholder" => 4.0,
     "libpostal"   => 0.0,
     "valhalla"    => 1.0,
-    "overpass"    => 4.0,
-    "otp"         => 1.0
+    "overpass"    => 4.0
   }.freeze
 
   COUNTRY_DISK = {
     "photon" => 8.0, "placeholder" => 4.0, "libpostal" => 0.0,
-    "valhalla" => 15.0, "overpass" => 45.0, "otp" => 5.0
+    "valhalla" => 15.0, "overpass" => 45.0
   }.freeze
 
   CONTINENT_DISK = {
     "photon" => 30.0, "placeholder" => 4.0, "libpostal" => 0.0,
-    "valhalla" => 115.0, "overpass" => 280.0, "otp" => 30.0
+    "valhalla" => 115.0, "overpass" => 280.0
   }.freeze
 
   PLANET_DISK = {
     "photon" => 110.0, "placeholder" => 4.0, "libpostal" => 0.0,
-    "valhalla" => 250.0, "overpass" => 700.0, "otp" => 50.0
+    "valhalla" => 250.0, "overpass" => 700.0
   }.freeze
 
   HOURS = {
     "photon" => 2.0, "placeholder" => 1.5, "libpostal" => 0.05,
-    "valhalla" => 1.5, "overpass" => 6.0, "otp" => 1.0
+    "valhalla" => 1.5, "overpass" => 6.0
   }.freeze
 
   def initialize(regions:, services:)

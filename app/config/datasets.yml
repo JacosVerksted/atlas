@@ -81,11 +81,3 @@ overpass:
   default_schedule: "@continuous"
   notes: "Self-updates from Geofabrik/OSM diff stream. No scheduled run needed."
 
-otp:
-  update_kind: full_refresh
-  disk_impact:
-    transient_gb: 5
-    persistent_gb: 10
-    notes: "Re-downloads GTFS feeds + rebuilds graph in place. Graph is 3–10 GB depending on region."
-  default_schedule: "0 5 * * 1"
-  notes: "Rebuild when GTFS feed publisher refreshes (most agencies weekly–monthly)."

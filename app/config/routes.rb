@@ -12,7 +12,6 @@ Rails.application.routes.draw do
       get  :reverse,        to: "reverse#show"
       post "reverse/batch", to: "reverse#batch"
       get  :route,          to: "routes#show"
-      get  :transit,        to: "transits#show"
       get  "whats-here",    to: "whats_here#index"
       get  :pois,           to: "pois#index"
       get  "pois/categories", to: "pois#categories"

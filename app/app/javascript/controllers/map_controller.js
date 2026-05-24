@@ -79,7 +79,6 @@ export default class extends Controller {
       "atlas:routing:endpoint":       (e) => this.setRouteEndpoint(e.detail),
       "atlas:routing:clearendpoint":  (e) => this.clearRouteEndpoint(e.detail.role),
       "atlas:routing:show":           (e) => this.showRoute(e.detail),
-      "atlas:routing:transit":        (e) => this.showTransit(e.detail),
       "atlas:routing:clear":          ()  => this.clearRoute(),
       "atlas:places:show":            (e) => this.showPlaces(e.detail.features),
       "atlas:places:clear":           ()  => this.clearPlaces(),
@@ -499,70 +498,12 @@ export default class extends Controller {
     })
   }
 
-  showTransit({ legs }) {
-    if (!this.map || !legs?.length) return
-    this.clearRoute()
-    this.ensureTransitLayer()
-
-    const features = []
-    const allCoords = []
-    legs.forEach((leg, idx) => {
-      const coords = leg.shape ? decodePolyline5(leg.shape) : []
-      if (coords.length < 2) return
-      allCoords.push(...coords)
-      features.push({
-        type: "Feature",
-        properties: { mode: leg.mode, color: legColor(leg.mode), idx },
-        geometry: { type: "LineString", coordinates: coords }
-      })
-    })
-    this.map.getSource("transit").setData({ type: "FeatureCollection", features })
-
-    if (allCoords.length >= 2) {
-      const lons = allCoords.map(c => c[0])
-      const lats = allCoords.map(c => c[1])
-      this.map.fitBounds(
-        [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
-        { padding: 60, duration: 600 }
-      )
-    }
-
-    // Mark the first leg's start as "from", last leg's end as "to" via existing markers.
-    const first = features[0]?.geometry.coordinates[0]
-    const last  = features.at(-1)?.geometry.coordinates.at(-1)
-    if (first) this.setRouteEndpoint({ role: "from", lon: first[0], lat: first[1], color: themeColor("--color-info", "#3D6F7A") })
-    if (last)  this.setRouteEndpoint({ role: "to",   lon: last[0],  lat: last[1],  color: themeColor("--color-primary", "#2F5D3E") })
-  }
-
-  ensureTransitLayer() {
-    if (this.map.getSource("transit")) return
-    this.map.addSource("transit", { type: "geojson", data: { type: "FeatureCollection", features: [] } })
-    this.map.addLayer({
-      id: "transit-casing", source: "transit", type: "line",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": themeColor("--color-base-100", "#ffffff"), "line-width": 8 }
-    })
-    this.map.addLayer({
-      id: "transit-line", source: "transit", type: "line",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": ["coalesce", ["get", "color"], themeColor("--color-primary", "#2F5D3E")],
-        "line-width": 5,
-        "line-dasharray": [
-          "case",
-          ["==", ["get", "mode"], "WALK"], ["literal", [1, 2]],
-          ["literal", [1, 0]]
-        ]
-      }
-    })
-  }
-
   clearRoute() {
     if (!this.map) return
-    ["route-line", "route-casing", "transit-line", "transit-casing"].forEach(l => {
+    ;["route-line", "route-casing"].forEach(l => {
       if (this.map.getLayer(l)) this.map.removeLayer(l)
     })
-    ;["route", "transit"].forEach(s => {
+    ;["route"].forEach(s => {
       if (this.map.getSource(s)) this.map.removeSource(s)
     })
     Object.keys(this.routeEndpoints).forEach(role => this.clearRouteEndpoint(role))

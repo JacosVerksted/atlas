@@ -1,7 +1,7 @@
 <%
   capability_for = {
     "photon" => "Search", "placeholder" => "Search",
-    "valhalla" => "Routing", "overpass" => "POIs", "otp" => "Transit"
+    "valhalla" => "Routing", "overpass" => "POIs"
   }
   degraded = local_assigns[:degraded] || (defined?(@degraded) ? @degraded : [])
   caps = Array(degraded).filter_map { |n| capability_for[n] }.uniq

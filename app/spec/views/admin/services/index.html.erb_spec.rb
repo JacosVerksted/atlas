@@ -11,20 +11,17 @@ RSpec.describe "admin/services/index.html.erb", type: :view do
     @services = [
       Service.create!(name: "photon",   profile: "geocoding", status: "ready"),
       Service.create!(name: "valhalla", profile: "routing",   status: "ready"),
-      Service.create!(name: "overpass", profile: "pois",      status: "ready"),
-      Service.create!(name: "otp",      profile: "transit",   status: "ready")
+      Service.create!(name: "overpass", profile: "pois",      status: "ready")
     ]
     render template: "admin/services/index"
 
     geocoding_pos = rendered.index("Geocoding")
     routing_pos   = rendered.index("Routing")
     pois_pos      = rendered.index("POIs")
-    transit_pos   = rendered.index("Transit")
 
     expect(geocoding_pos).to be_present
     expect(routing_pos).to be > geocoding_pos
     expect(pois_pos).to be > routing_pos
-    expect(transit_pos).to be > pois_pos
   end
 
   it "omits headers for profiles with no services" do
@@ -33,6 +30,5 @@ RSpec.describe "admin/services/index.html.erb", type: :view do
     expect(rendered).to include("Geocoding")
     expect(rendered).not_to include("Routing")
     expect(rendered).not_to include("POIs")
-    expect(rendered).not_to include("Transit")
   end
 end

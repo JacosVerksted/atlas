@@ -4,7 +4,7 @@ RSpec.describe DatasetRegistry do
   describe ".default" do
     it "loads every service from config/datasets.yml" do
       registry = described_class.default
-      expect(registry.names).to include("caddy", "photon", "valhalla", "overpass", "otp", "placeholder", "libpostal", "whosonfirst")
+      expect(registry.names).to include("caddy", "photon", "valhalla", "overpass", "placeholder", "libpostal", "whosonfirst")
     end
   end
 

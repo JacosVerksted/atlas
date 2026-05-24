@@ -13,7 +13,7 @@ module Admin
       if params[:confirmed].present? && ActiveModel::Type::Boolean.new.cast(params[:confirmed])
         apply_service_intents!(intents)
         ControlPlaneClient.default.apply_regions(regions.map(&:name)) unless regions.empty?
-        Service.where(name: %w[valhalla overpass otp]).where(enabled: true).update_all(status: Service.statuses[:starting])
+        Service.where(name: %w[valhalla overpass]).where(enabled: true).update_all(status: Service.statuses[:starting])
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: turbo_stream.update(

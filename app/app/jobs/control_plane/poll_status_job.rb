@@ -8,7 +8,6 @@ module ControlPlane
       "libpostal"   => "geocoding",
       "valhalla"    => "routing",
       "overpass"    => "pois",
-      "otp"         => "transit",
       "whosonfirst" => "data-setup"
     }.freeze
 

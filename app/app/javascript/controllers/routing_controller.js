@@ -22,7 +22,6 @@ export default class extends Controller {
   static values = {
     searchEndpoint:  { type: String, default: "/api/v1/search" },
     routeEndpoint:   { type: String, default: "/api/v1/route" },
-    transitEndpoint: { type: String, default: "/api/v1/transit" }
   }
 
   connect() {
@@ -228,9 +227,6 @@ export default class extends Controller {
   // ---- submit ----
   async submit() {
     if (!this.picked.from || !this.picked.to) return
-    if (this.mode === "transit") {
-      return this.submitTransit()
-    }
     this.hideItineraries()
     this.showStatus("Routing…")
     this.submitTarget.disabled = true
@@ -258,82 +254,6 @@ export default class extends Controller {
     } finally {
       this.submitTarget.disabled = false
     }
-  }
-
-  async submitTransit() {
-    this.hideSummary()
-    this.showStatus("Planning transit…")
-    this.submitTarget.disabled = true
-    try {
-      const url = new URL(this.transitEndpointValue, window.location.origin)
-      url.searchParams.set("from", `${this.picked.from.lat},${this.picked.from.lon}`)
-      url.searchParams.set("to",   `${this.picked.to.lat},${this.picked.to.lon}`)
-      url.searchParams.set("num",  "3")
-      const res = await fetch(url.toString(), { headers: { Accept: "application/json" } })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        this.showStatus(body?.error?.message || `Transit failed (${res.status})`)
-        return
-      }
-      const body = await res.json()
-      this.renderItineraries(body.data)
-      this.hideStatus()
-    } catch (err) {
-      this.showStatus(`Network error: ${err.message}`)
-    } finally {
-      this.submitTarget.disabled = false
-    }
-  }
-
-  renderItineraries(plan) {
-    const list = plan?.itineraries || []
-    this.itinerariesTarget.innerHTML = ""
-    if (list.length === 0) {
-      this.showStatus("No transit options found.")
-      this.itinerariesTarget.classList.add("hidden")
-      this.element.dispatchEvent(new CustomEvent("atlas:routing:clear", { bubbles: true }))
-      return
-    }
-
-    list.forEach((it, idx) => {
-      const item = document.createElement("li")
-      item.className = "border rounded-md p-2 hover:bg-base-200/50 cursor-pointer transition-colors"
-      item.dataset.index = idx
-      item.addEventListener("click", () => this.selectItinerary(idx, list))
-      if (idx === 0) item.classList.add("border-primary", "bg-primary/5")
-
-      const head = document.createElement("div")
-      head.className = "flex items-baseline justify-between gap-2"
-      const dur = document.createElement("span")
-      dur.className = "text-sm font-semibold"
-      dur.textContent = formatDuration(it.duration)
-      const time = document.createElement("span")
-      time.className = "text-xs text-base-content/60 tabular-nums"
-      time.textContent = `${formatHM(it.start_time)} → ${formatHM(it.end_time)}`
-      head.appendChild(dur); head.appendChild(time)
-
-      const legs = document.createElement("div")
-      legs.className = "flex items-center gap-1 mt-1 flex-wrap"
-      ;(it.legs || []).forEach(leg => legs.appendChild(legBadge(leg)))
-
-      item.appendChild(head); item.appendChild(legs)
-      this.itinerariesTarget.appendChild(item)
-    })
-    this.itinerariesTarget.classList.remove("hidden")
-    // Auto-select the first itinerary on the map.
-    this.selectItinerary(0, list)
-  }
-
-  selectItinerary(idx, list) {
-    this.itinerariesTarget.querySelectorAll("li").forEach((li, i) => {
-      li.classList.toggle("border-primary", i === idx)
-      li.classList.toggle("bg-primary/5", i === idx)
-    })
-    const it = list[idx]
-    if (!it) return
-    this.element.dispatchEvent(new CustomEvent("atlas:routing:transit", {
-      detail: { legs: it.legs || [] }, bubbles: true
-    }))
   }
 
   hideItineraries() {
@@ -419,35 +339,3 @@ export default class extends Controller {
   hideStatus()      { this.statusTarget.textContent = "";   this.statusTarget.classList.add("hidden") }
 }
 
-function formatDuration(seconds) {
-  const m = Math.max(1, Math.round((seconds || 0) / 60))
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
-}
-
-function formatHM(ms) {
-  const d = new Date(ms || Date.now())
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-}
-
-const MODE_COLORS = {
-  WALK:      "bg-base-300 text-base-content",
-  BUS:       "bg-warning text-warning-content",
-  TRAM:      "bg-error text-error-content",
-  SUBWAY:    "bg-info text-info-content",
-  RAIL:      "bg-success text-success-content",
-  FERRY:     "bg-secondary text-secondary-content",
-  CABLE_CAR: "bg-accent text-accent-content",
-  GONDOLA:   "bg-accent text-accent-content"
-}
-
-function legBadge(leg) {
-  const span = document.createElement("span")
-  const color = MODE_COLORS[leg.mode] || "bg-base-300 text-base-content"
-  span.className = `text-[10px] px-1.5 py-0.5 rounded font-medium ${color}`
-  if (leg.mode === "WALK") {
-    span.textContent = `🚶 ${formatDuration(leg.duration)}`
-  } else {
-    span.textContent = leg.route_name ? `${leg.route_name}` : leg.mode
-  }
-  return span
-}

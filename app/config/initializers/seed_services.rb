@@ -6,8 +6,7 @@ Rails.application.config.after_initialize do
     "placeholder" => "geocoding",
     "libpostal"   => "geocoding",
     "valhalla"    => "routing",
-    "overpass"    => "pois",
-    "otp"         => "transit"
+    "overpass"    => "pois"
   }.freeze
 
   begin
